@@ -5,100 +5,171 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Comparador de precios Xbox</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  :root{--bg:#f4f5f7;--surface:#fff;--surface-2:#f0f1f4;--border:#e2e4ea;--text:#14161b;--muted:#5b6270;--faint:#8a91a0;--accent:#107c10;--accent-ink:#fff;--good:#1f8a3b;--ok:#7cae00;--mid:#d19a00;--low:#d1560a;--save:#0a7d3c;--shadow:0 1px 2px rgba(20,22,27,.06),0 4px 16px rgba(20,22,27,.06);--radius:14px}
-  @media (prefers-color-scheme:dark){:root{--bg:#0f1115;--surface:#171a21;--surface-2:#1e222b;--border:#2a2f3a;--text:#eef0f4;--muted:#a3abbb;--faint:#6f7889;--accent:#3ba55c;--accent-ink:#0b1f12;--good:#57d977;--ok:#a6d84a;--mid:#e7b83a;--low:#f0894a;--save:#57d977;--shadow:0 1px 2px rgba(0,0,0,.3),0 8px 28px rgba(0,0,0,.35)}}
+  /* ---------- Paleta (oscuro por defecto, con variante clara) ---------- */
+  :root{
+    --bg:#0c0e13; --bg2:#0f121a; --surface:#161a23; --surface-2:#1d2230; --raise:#222838;
+    --border:#262c3a; --border-2:#2f3646;
+    --text:#eef1f7; --muted:#98a1b4; --faint:#6b7488;
+    --accent:#2fd35b; --accent-2:#25b04c; --accent-ink:#04240f;
+    --good:#33d17a; --ok:#a3d84a; --mid:#f0b429; --low:#f97b4f;
+    --save:#2fd35b; --save-ink:#04240f;
+    --shadow:0 1px 0 rgba(255,255,255,.02) inset, 0 6px 24px rgba(0,0,0,.35);
+    --gap:16px;
+  }
+  html{color-scheme:dark}
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
-  .wrap{max-width:1180px;margin:0 auto;padding:0 16px}
-  header{background:linear-gradient(180deg,var(--surface),var(--bg));border-bottom:1px solid var(--border)}
-  .head{display:flex;align-items:center;gap:14px;padding:20px 0 16px}
-  .logo{width:38px;height:38px;border-radius:10px;background:var(--accent);display:grid;place-items:center;color:var(--accent-ink);font-weight:800;font-size:20px;flex:none}
-  .title h1{margin:0;font-size:20px;font-weight:800;letter-spacing:-.2px}
-  .title p{margin:2px 0 0;color:var(--muted);font-size:13px}
-  .updated{margin-left:auto;text-align:right;color:var(--faint);font-size:12px;line-height:1.35}
-  .controls{display:flex;flex-wrap:wrap;gap:10px;padding:14px 0 18px}
-  .field{position:relative;display:flex;align-items:center}
-  .field input,.field select{appearance:none;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:10px;font-size:14px;outline:none}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font:15px/1.5 'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+  a{color:inherit}
+
+  /* ---------- Cabecera ---------- */
+  header{position:sticky;top:0;z-index:10;background:color-mix(in srgb,var(--bg) 88%, transparent);
+    backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid var(--border)}
+  .head{display:flex;align-items:center;gap:14px;padding:18px 0 14px}
+  .mark{width:40px;height:40px;border-radius:11px;flex:none;display:grid;place-items:center;
+    background:linear-gradient(150deg,var(--accent),var(--accent-2));box-shadow:0 6px 18px -6px var(--accent)}
+  .mark svg{width:22px;height:22px;color:var(--accent-ink)}
+  .brand h1{margin:0;font-family:'Sora','Inter',system-ui,sans-serif;font-weight:800;font-size:19px;letter-spacing:-.4px}
+  .brand p{margin:2px 0 0;color:var(--muted);font-size:12.5px}
+  .stat{margin-left:auto;text-align:right;font-size:12px;color:var(--faint);line-height:1.4}
+  .stat b{color:var(--muted);font-weight:600}
+
+  .tabs{display:flex;gap:2px;padding:2px 0 0}
+  .tab{position:relative;background:none;border:none;color:var(--muted);font-family:'Sora','Inter',system-ui,sans-serif;font-weight:600;
+    font-size:14px;padding:10px 14px;cursor:pointer;border-radius:9px 9px 0 0}
+  .tab:hover{color:var(--text)}
+  .tab.active{color:var(--text)}
+  .tab.active::after{content:"";position:absolute;left:12px;right:12px;bottom:-1px;height:2.5px;
+    background:var(--accent);border-radius:2px}
+  .tab .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--low);margin-right:7px;vertical-align:1px}
+
+  /* ---------- Controles ---------- */
+  .controls{display:flex;flex-wrap:wrap;gap:10px;padding:16px 0}
+  .field{position:relative;display:flex}
+  .field input,.field select{appearance:none;background:var(--surface);border:1px solid var(--border);
+    color:var(--text);padding:10px 13px;border-radius:11px;font:inherit;font-size:14px;outline:none}
   .field input{min-width:230px}
+  .field input::placeholder{color:var(--faint)}
   .field input:focus,.field select:focus{border-color:var(--accent)}
-  .field select{padding-right:30px;cursor:pointer}
-  .field.sel::after{content:"";position:absolute;right:11px;top:50%;width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:translateY(-70%) rotate(45deg);pointer-events:none}
-  .toggle{display:inline-flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);padding:9px 12px;border-radius:10px;font-size:13.5px;color:var(--muted);cursor:pointer;user-select:none}
-  .toggle input{accent-color:var(--accent)}
-  .count{margin-left:auto;align-self:center;color:var(--faint);font-size:13px}
-  .tabs{display:flex;gap:4px;padding:8px 0 0}
-  .tab{background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-size:14.5px;font-weight:600;padding:8px 12px;cursor:pointer}
-  .tab.active{color:var(--text);border-bottom-color:var(--accent)}
-  .grid{display:flex;flex-direction:column;gap:10px;padding:6px 0 24px}
-  .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:12px 14px;display:grid;grid-template-columns:60px 1fr minmax(230px,auto);gap:14px;align-items:center}
-  .box{width:60px;height:84px;border-radius:6px;object-fit:cover;background:var(--surface-2)}
+  .field select{padding-right:32px;cursor:pointer;font-weight:500}
+  .field.sel::after{content:"";position:absolute;right:13px;top:50%;width:7px;height:7px;
+    border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:translateY(-70%) rotate(45deg);pointer-events:none}
+  .toggle{display:inline-flex;align-items:center;gap:9px;background:var(--surface);border:1px solid var(--border);
+    padding:10px 13px;border-radius:11px;font-size:13.5px;color:var(--muted);cursor:pointer;user-select:none}
+  .toggle input{accent-color:var(--accent);width:15px;height:15px}
+  .count{margin-left:auto;align-self:center;color:var(--faint);font-size:13px;font-variant-numeric:tabular-nums}
+
+  /* ---------- Lista ---------- */
+  .grid{display:flex;flex-direction:column;gap:9px;padding:2px 0 30px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:15px;box-shadow:var(--shadow);
+    padding:13px 16px;display:grid;grid-template-columns:76px 1fr minmax(238px,auto);gap:16px;align-items:center;
+    transition:border-color .15s,transform .15s}
+  .card:hover{border-color:var(--border-2)}
+  .cover{width:76px;height:108px;border-radius:9px;object-fit:cover;background:var(--surface-2);
+    box-shadow:0 4px 14px -4px rgba(0,0,0,.5)}
+  .cover.ph{display:grid;place-items:center;color:var(--faint)}
   .info{min-width:0}
-  .game-title{font-weight:700;font-size:15.5px;line-height:1.25;margin:0 0 3px}
-  .sub{color:var(--muted);font-size:12.5px;margin-bottom:7px}
-  .score{display:inline-flex;align-items:center;justify-content:center;min-width:32px;height:32px;padding:0 6px;border-radius:7px;font-weight:800;font-size:15px;color:#fff}
-  .score.na{background:var(--faint);font-size:11px}
-  .scorewrap{display:flex;align-items:center;gap:8px}
-  .scorewrap small{color:var(--faint);font-size:11px;text-transform:uppercase;letter-spacing:.4px}
-  .pbox{display:flex;flex-direction:column;align-items:flex-end;text-align:right;gap:3px}
-  .chile{color:var(--muted);font-size:12px}
-  .bestline{display:flex;align-items:center;gap:8px;justify-content:flex-end;flex-wrap:wrap}
-  .bestline .flag{font-size:18px}
-  .bregion{font-size:12.5px;color:var(--muted)}
-  .bprice{font-weight:800;font-size:17px;font-variant-numeric:tabular-nums}
-  .save{background:var(--save);color:#04240f;font-weight:800;font-size:12.5px;padding:3px 8px;border-radius:999px;white-space:nowrap}
-  .ends{color:var(--low);font-size:11.5px;font-weight:600}
+  .gtitle{font-family:'Sora','Inter',system-ui,sans-serif;font-weight:600;font-size:16px;line-height:1.25;margin:0 0 5px;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .gmeta{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .score{display:inline-flex;align-items:center;justify-content:center;min-width:38px;height:34px;padding:0 7px;
+    border-radius:8px;font-family:'Sora','Inter',system-ui,sans-serif;font-weight:800;font-size:16px;color:#08110a}
+  .score.na{background:var(--surface-2)!important;color:var(--faint);font-size:12px;font-weight:600}
+  .slabel{color:var(--faint);font-size:11px;text-transform:uppercase;letter-spacing:.6px;font-weight:600}
+  .year{color:var(--muted);font-size:12.5px}
+
+  .pbox{display:flex;flex-direction:column;align-items:flex-end;text-align:right;gap:4px}
+  .chile{color:var(--faint);font-size:11.5px}
+  .chile b{color:var(--muted);font-weight:600}
+  .bestrow{display:flex;align-items:center;gap:9px;justify-content:flex-end;flex-wrap:wrap}
+  .flag{width:22px;height:15px;border-radius:3px;object-fit:cover;box-shadow:0 0 0 1px rgba(0,0,0,.15)}
+  .bregion{font-size:12.5px;color:var(--muted);font-weight:500}
+  .bprice{font-family:'Sora','Inter',system-ui,sans-serif;font-weight:800;font-size:18px;font-variant-numeric:tabular-nums;letter-spacing:-.3px}
+  .tag{background:var(--save);color:var(--save-ink);font-family:'Sora','Inter',system-ui,sans-serif;font-weight:700;font-size:12px;
+    padding:2px 8px;border-radius:7px;white-space:nowrap}
+  .sub2{color:var(--muted);font-size:11.5px;font-variant-numeric:tabular-nums}
+  .ends{display:inline-flex;align-items:center;gap:5px;color:var(--low);font-size:11.5px;font-weight:600}
+  .ends svg{width:12px;height:12px}
   .na2{color:var(--faint);font-size:13px}
-  .expand{grid-column:1/-1;border:none;background:none;color:var(--accent);font-weight:600;font-size:13px;cursor:pointer;padding:6px 0 2px;text-align:left}
-  .regions{grid-column:1/-1;display:none;flex-direction:column;gap:1px;border-radius:8px;overflow:hidden}
+
+  .expand{grid-column:1/-1;justify-self:start;border:none;background:none;color:var(--accent);
+    font-weight:600;font-size:12.5px;cursor:pointer;padding:8px 0 2px;display:inline-flex;align-items:center;gap:5px}
+  .expand svg{width:12px;height:12px;transition:transform .2s}
+  .expand.open svg{transform:rotate(180deg)}
+  .regions{grid-column:1/-1;display:none;flex-direction:column;margin-top:4px;border:1px solid var(--border);
+    border-radius:11px;overflow:hidden}
   .regions.open{display:flex}
-  .rrow{display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--surface-2);font-size:13px}
-  .rrow .flag{font-size:16px}.rrow .rname{flex:1;min-width:0}
-  .rrow .racc{color:var(--faint);font-size:11px}
+  .rrow{display:flex;align-items:center;gap:11px;padding:9px 12px;font-size:13px}
+  .rrow:nth-child(odd){background:var(--surface-2)}
+  .rrow .rname{flex:1;min-width:0;font-weight:500}
+  .rrow .racc{color:var(--faint);font-size:11px;font-weight:400}
   .rrow .rend{color:var(--low);font-size:11px}
   .rrow .rlocal{color:var(--muted);font-size:11.5px;font-variant-numeric:tabular-nums}
-  .rrow .rclp{font-weight:700;font-variant-numeric:tabular-nums;min-width:86px;text-align:right}
-  .rrow a{color:var(--accent);text-decoration:none;font-size:12px;font-weight:600}
-  @media(max-width:600px){.card{grid-template-columns:56px 1fr}.pbox{grid-column:1/-1;align-items:flex-start;text-align:left}.bestline{justify-content:flex-start}}
-  .state{padding:60px 16px;text-align:center;color:var(--muted)}
-  .spinner{width:26px;height:26px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 12px}
+  .rrow .rdisc{color:var(--save);font-weight:700;font-size:11.5px}
+  .rrow .rclp{font-family:'Sora','Inter',system-ui,sans-serif;font-weight:700;font-variant-numeric:tabular-nums;min-width:92px;text-align:right}
+  .rrow a{color:var(--accent);text-decoration:none;font-size:12px;font-weight:600;white-space:nowrap}
+  .rrow a:hover{text-decoration:underline}
+
+  .state{padding:80px 16px;text-align:center;color:var(--muted)}
+  .spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--accent);
+    border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 14px}
   @keyframes spin{to{transform:rotate(360deg)}}
-  .more{display:block;margin:8px auto 40px;background:var(--accent);color:var(--accent-ink);border:none;padding:11px 20px;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer}
-  footer{border-top:1px solid var(--border);color:var(--faint);font-size:12.5px;line-height:1.6;padding:20px 0 40px}
+  .more{display:block;margin:6px auto 44px;background:var(--surface);color:var(--text);border:1px solid var(--border-2);
+    padding:11px 22px;border-radius:11px;font-family:'Sora','Inter',system-ui,sans-serif;font-weight:600;font-size:14px;cursor:pointer}
+  .more:hover{border-color:var(--accent);color:var(--accent)}
+  footer{border-top:1px solid var(--border);color:var(--faint);font-size:12px;line-height:1.7;padding:22px 0 46px}
   footer b{color:var(--muted)}
+
+  @media(max-width:600px){
+    .wrap{padding:0 14px}
+    .card{grid-template-columns:64px 1fr;gap:13px}
+    .cover{width:64px;height:90px}
+    .pbox{grid-column:1/-1;align-items:flex-start;text-align:left;border-top:1px solid var(--border);padding-top:10px}
+    .bestrow{justify-content:flex-start}
+    .stat{display:none}
+  }
 </style>
 </head>
 <body>
 <header>
   <div class="wrap">
     <div class="head">
-      <div class="logo">X</div>
-      <div class="title">
+      <div class="mark"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c-2 1.3-6.5 5-8 9 2.6-2.4 5.7-4 8-4s5.4 1.6 8 4c-1.5-4-6-7.7-8-9zM4.4 12.8C3.5 14.3 3 16 3 17.7c0 1.4.5 2.7 1.3 3.6C6 19 9 15.7 12 13.9 9 15 6.2 15.5 4.4 12.8zm15.2 0C17.8 15.5 15 15 12 13.9c3 1.8 6 5.1 7.7 7.4.8-.9 1.3-2.2 1.3-3.6 0-1.7-.5-3.4-1.4-4.9z"/></svg></div>
+      <div class="brand">
         <h1>Comparador de precios Xbox</h1>
-        <p>Todo el catalogo, por region, ordenado por nota. Se actualiza solo cada dia.</p>
+        <p>Todo el catalogo, por region. Encuentra donde esta mas barato.</p>
       </div>
-      <div class="updated" id="updated"></div>
+      <div class="stat" id="stat"></div>
     </div>
     <div class="tabs" id="tabs" hidden>
       <button class="tab active" data-mode="all">Todos los juegos</button>
-      <button class="tab" data-mode="ofertas">🔥 Ofertas</button>
-    </div>
-    <div class="controls" id="controls" hidden>
-      <div class="field"><input id="q" type="search" placeholder="Buscar juego..." autocomplete="off"></div>
-      <div class="field sel"><select id="sort">
-        <option value="mc">Nota (mayor a menor)</option>
-        <option value="clp">Precio mas barato (CLP)</option>
-        <option value="save">Mayor ahorro vs Chile</option>
-        <option value="disc">Mayor descuento</option>
-        <option value="name">Nombre (A-Z)</option>
-        <option value="year">Mas nuevos</option>
-      </select></div>
-      <label class="toggle"><input type="checkbox" id="gc"> Solo regiones con gift card facil</label>
-      <label class="toggle"><input type="checkbox" id="rated"> Solo con nota</label>
-      <span class="count" id="count"></span>
+      <button class="tab" data-mode="ofertas"><span class="dot"></span>Ofertas</button>
     </div>
   </div>
 </header>
+
+<div class="wrap">
+  <div class="controls" id="controls" hidden>
+    <div class="field"><input id="q" type="search" placeholder="Buscar juego..." autocomplete="off"></div>
+    <div class="field sel"><select id="sort">
+      <option value="mc">Nota (mayor a menor)</option>
+      <option value="clp">Precio mas barato</option>
+      <option value="save">Mayor ahorro vs Chile</option>
+      <option value="disc">Mayor descuento</option>
+      <option value="name">Nombre (A-Z)</option>
+      <option value="year">Mas nuevos</option>
+    </select></div>
+    <label class="toggle"><input type="checkbox" id="gc"> Solo gift card facil</label>
+    <label class="toggle"><input type="checkbox" id="rated"> Solo con nota</label>
+    <span class="count" id="count"></span>
+  </div>
+</div>
 
 <main class="wrap">
   <div id="state" class="state"><div class="spinner"></div><div>Cargando catalogo...</div></div>
@@ -109,14 +180,16 @@
 <footer class="wrap"><div id="foot"></div></footer>
 
 <script>
-let GAMES=[], META=null, REGIONS=[], REG={}, ROWS=[], shown=0, PAGE=60, mode='all';
+let GAMES=[], META=null, REGIONS=[], REG={}, ROWS=[], shown=0, PAGE=50, mode='all';
 const $=s=>document.querySelector(s);
-const flags={CL:'🇨🇱',AR:'🇦🇷',TR:'🇹🇷',BR:'🇧🇷',US:'🇺🇸',UA:'🇺🇦',PL:'🇵🇱',CO:'🇨🇴',IN:'🇮🇳',NG:'🇳🇬',EG:'🇪🇬',ZA:'🇿🇦'};
 const fmtCLP=n=>n==null?'-':'$'+Math.round(n).toLocaleString('es-CL');
 const fmtLocal=(n,c)=>n==null?'-':Number(n).toLocaleString('es-CL',{maximumFractionDigits:2})+' '+c;
 const scoreColor=mc=>mc>=90?'var(--good)':mc>=80?'var(--ok)':mc>=70?'var(--mid)':'var(--low)';
 const MESES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 const fmtDate=s=>{if(!s)return null;const p=s.split('-');return (+p[2])+' '+MESES[(+p[1])-1]+' '+p[0];};
+const flagImg=c=>`<img class="flag" src="https://flagcdn.com/w40/${c.toLowerCase()}.png" alt="${c}" loading="lazy">`;
+const CLOCK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 1.8"/></svg>';
+const CHEV='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>';
 
 async function boot(){
   try{
@@ -127,27 +200,23 @@ async function boot(){
     GAMES=g; META=m; REGIONS=m.regions; REGIONS.forEach(r=>REG[r.code]=r);
   }catch(e){ $('#state').innerHTML='<div>No pude cargar los datos todavia. Si recien desplegaste, espera a que el robot corra por primera vez.</div>'; return; }
 
-  // precompute cheapest per game
   const refCode=(REGIONS.find(r=>r.ref)||REGIONS[0]).code;
   for(const g of GAMES){
-    const list=[]; let best=null,bestGC=null;
+    const list=[]; let best=null,bestGC=null,bestOffer=null;
     for(const R of REGIONS){ const p=g.r[R.code]; if(!p) continue; const it={code:R.code,local:p[0],clp:p[1],disc:p[2],end:p[3]||null}; list.push(it);
-      if(!best||it.clp<best.clp)best=it; if(R.giftCard&&(!bestGC||it.clp<bestGC.clp))bestGC=it; }
+      if(!best||it.clp<best.clp)best=it; if(R.giftCard&&(!bestGC||it.clp<bestGC.clp))bestGC=it;
+      if(it.disc>0&&(!bestOffer||it.clp<bestOffer.clp))bestOffer=it; }
     list.sort((a,b)=>a.clp-b.clp);
-    let bestOffer=null; for(const it of list){ if(it.disc>0 && (!bestOffer||it.clp<bestOffer.clp)) bestOffer=it; }
-    g._list=list; g._best=best; g._bestGC=bestGC; g._bestOffer=bestOffer; g._cl=g.r[refCode]?g.r[refCode][1]:null;
-    g._disc=list.reduce((mx,x)=>Math.max(mx,x.disc||0),0);
+    g._list=list; g._best=best; g._bestGC=bestGC; g._bestOffer=bestOffer;
+    g._cl=g.r[refCode]?g.r[refCode][1]:null; g._disc=list.reduce((mx,x)=>Math.max(mx,x.disc||0),0);
   }
   $('#state').hidden=true; $('#controls').hidden=false; $('#tabs').hidden=false;
+  $('#stat').innerHTML='Actualizado '+(META.updated?new Date(META.updated).toLocaleDateString('es-CL'):'-')+'<br><b>'+META.count.toLocaleString('es-CL')+'</b> juegos · <b>'+META.withRating.toLocaleString('es-CL')+'</b> con nota';
+  $('#foot').innerHTML='<b>Datos:</b> tienda oficial de Xbox de cada region, convertidos a CLP con el tipo de cambio del dia. Notas de IGDB. <b>Pago:</b> comprar en otra region suele requerir gift card de ese pais o cambiar la region de la cuenta Xbox; el filtro deja solo las de gift card facil.';
   document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
-    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
-    t.classList.add('active');
-    mode=t.dataset.mode;
-    if(mode==='ofertas') $('#sort').value='disc';
-    shown=0; render();
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active')); t.classList.add('active');
+    mode=t.dataset.mode; if(mode==='ofertas')$('#sort').value='disc'; shown=0; render();
   }));
-  $('#updated').innerHTML='Actualizado: '+(META.updated?new Date(META.updated).toLocaleDateString('es-CL'):'-')+'<br>'+META.count.toLocaleString('es-CL')+' juegos · '+META.withRating.toLocaleString('es-CL')+' con nota';
-  $('#foot').innerHTML='<b>Datos:</b> tienda oficial de Xbox de cada region, convertidos a CLP. Notas de IGDB. <b>Pago:</b> comprar en otra region suele requerir gift card de ese pais o cambiar la region de la cuenta; el filtro deja solo las de gift card facil.';
   ['#q','#sort','#gc','#rated'].forEach(s=>$(s).addEventListener('input',()=>{shown=0;render();}));
   $('#more').addEventListener('click',()=>{shown+=PAGE;draw();});
   render();
@@ -188,16 +257,22 @@ function card(g,gc){
   if(mode==='ofertas'&&g._bestOffer) best=g._bestOffer;
   const save=(g._cl&&best&&best.clp<g._cl)?Math.round((1-best.clp/g._cl)*100):null;
   const el=document.createElement('div'); el.className='card';
-  const scoreEl=g.mc!=null?`<span class="score" style="background:${scoreColor(g.mc)}">${g.mc}</span><small>Nota IGDB</small>`:`<span class="score na">N/A</span><small>sin nota</small>`;
+  const scoreEl=g.mc!=null
+    ?`<span class="score" style="background:${scoreColor(g.mc)}">${g.mc}</span><span class="slabel">IGDB</span>`
+    :`<span class="score na">N/A</span>`;
   let pbox;
   if(best){
-    const endTxt=(best.disc&&best.end)?`<div class="ends">⏳ Oferta hasta el ${fmtDate(best.end)}</div>`:'';
-    pbox=`<div class="pbox"><div class="chile">Chile: <b>${fmtCLP(g._cl)}</b></div><div class="bestline"><span class="flag">${flags[best.code]||''}</span><span class="bregion">${REG[best.code].name||best.code}</span><span class="bprice">${fmtCLP(best.clp)}</span>${best.disc?`<span class="save">-${best.disc}%</span>`:(save!=null?`<span class="save">-${save}%</span>`:'')}</div><div class="chile">${fmtLocal(best.local,REG[best.code].cur)}${save!=null?` · ahorras ${save}%`:''}</div>${endTxt}</div>`;
+    const endTxt=(best.disc&&best.end)?`<div class="ends">${CLOCK}Termina ${fmtDate(best.end)}</div>`:'';
+    pbox=`<div class="pbox">
+      <div class="chile">Chile <b>${fmtCLP(g._cl)}</b></div>
+      <div class="bestrow">${flagImg(best.code)}<span class="bregion">${REG[best.code].name||best.code}</span><span class="bprice">${fmtCLP(best.clp)}</span>${best.disc?`<span class="tag">-${best.disc}%</span>`:(save!=null?`<span class="tag">-${save}%</span>`:'')}</div>
+      <div class="sub2">${fmtLocal(best.local,REG[best.code].cur)}${save!=null?` · ahorras ${save}%`:''}</div>
+      ${endTxt}</div>`;
   } else pbox=`<div class="pbox"><div class="na2">Sin precio</div></div>`;
-  const regHTML=g._list.map(it=>`<div class="rrow"><span class="flag">${flags[it.code]||''}</span><span class="rname">${REG[it.code].name||it.code} <span class="racc">· ${REG[it.code].access}</span>${(it.disc&&it.end)?`<span class="rend"> · oferta hasta ${fmtDate(it.end)}</span>`:''}</span><span class="rlocal">${fmtLocal(it.local,REG[it.code].cur)}</span><span class="rclp">${fmtCLP(it.clp)}${it.disc?` <span style="color:var(--save)">-${it.disc}%</span>`:''}</span><a href="https://www.microsoft.com/store/productId/${g.id}?market=${it.code}" target="_blank" rel="noopener">Ver</a></div>`).join('');
-  el.innerHTML=`${g.img?`<img class="box" src="${g.img}" alt="" loading="lazy">`:`<div class="box"></div>`}<div class="info"><div class="game-title">${g.t}</div><div class="sub">${g.y||''}</div><div class="scorewrap">${scoreEl}</div></div>${pbox}<button class="expand">Ver todas las regiones (${g._list.length}) ▾</button><div class="regions">${regHTML}</div>`;
+  const regHTML=g._list.map(it=>`<div class="rrow">${flagImg(it.code)}<span class="rname">${REG[it.code].name||it.code} <span class="racc">· ${REG[it.code].access}</span>${(it.disc&&it.end)?`<span class="rend"> · hasta ${fmtDate(it.end)}</span>`:''}</span><span class="rlocal">${fmtLocal(it.local,REG[it.code].cur)}</span><span class="rclp">${fmtCLP(it.clp)}</span>${it.disc?`<span class="rdisc">-${it.disc}%</span>`:''}<a href="https://www.microsoft.com/store/productId/${g.id}?market=${it.code}" target="_blank" rel="noopener">Ver</a></div>`).join('');
+  el.innerHTML=`${g.img?`<img class="cover" src="${g.img}" alt="" loading="lazy">`:`<div class="cover ph">?</div>`}<div class="info"><div class="gtitle">${g.t}</div><div class="gmeta">${scoreEl}<span class="year">${g.y||''}</span></div></div>${pbox}<button class="expand">Ver todas las regiones (${g._list.length}) ${CHEV}</button><div class="regions">${regHTML}</div>`;
   const btn=el.querySelector('.expand'),bx=el.querySelector('.regions');
-  btn.addEventListener('click',()=>{bx.classList.toggle('open');btn.textContent=bx.classList.contains('open')?'Ocultar regiones ▴':`Ver todas las regiones (${g._list.length}) ▾`;});
+  btn.addEventListener('click',()=>{const o=bx.classList.toggle('open');btn.classList.toggle('open',o);});
   return el;
 }
 boot();
