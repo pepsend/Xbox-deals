@@ -71,8 +71,10 @@ async function crawlRegion(region) {
     const priceById = {};
     for (const a of avArr) if (a && a.price) priceById[a.productId] = a.price;
 
-    for (const id of Object.keys(ps)) {
-      const s = ps[id];
+    const psArr = Array.isArray(ps) ? ps : Object.values(ps);
+    for (const s of psArr) {
+      const id = s.productId;
+      if (!id) continue;
       const p = priceById[id];
       if (!p || !(p.listPrice > 0)) continue;         // omite gratis / sin precio
       if (s.productKind && s.productKind !== 'Game') continue; // solo juegos
@@ -93,7 +95,7 @@ async function crawlRegion(region) {
     if (!more || !ct) break;
     if (MAX_PAGES && page >= MAX_PAGES) break;
     if (page % 40 === 0) console.log(`  [${region.code}] ${page} pag, ${Object.keys(items).length} con precio...`);
-    await sleep(120); // freno suave
+    await sleep(60); // freno suave
   }
   console.log(`  [${region.code}] listo: ${Object.keys(items).length} juegos con precio (catalogo ~${total})`);
   return items;
@@ -158,7 +160,8 @@ async function main() {
   const ratings = await getRatings();
 
   const byRegion = {};
-  for (const r of REGIONS) { console.log(`Recorriendo ${r.code}...`); byRegion[r.code] = await crawlRegion(r); }
+  console.log(`Recorriendo ${REGIONS.length} regiones en paralelo...`);
+  await Promise.all(REGIONS.map(async (r) => { byRegion[r.code] = await crawlRegion(r); }));
 
   const refCode = REGIONS.find(r => r.ref).code;
   const allIds = new Set();
