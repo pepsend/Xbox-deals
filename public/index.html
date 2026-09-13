@@ -1,0 +1,180 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Comparador de precios Xbox</title>
+<style>
+  :root{--bg:#f4f5f7;--surface:#fff;--surface-2:#f0f1f4;--border:#e2e4ea;--text:#14161b;--muted:#5b6270;--faint:#8a91a0;--accent:#107c10;--accent-ink:#fff;--good:#1f8a3b;--ok:#7cae00;--mid:#d19a00;--low:#d1560a;--save:#0a7d3c;--shadow:0 1px 2px rgba(20,22,27,.06),0 4px 16px rgba(20,22,27,.06);--radius:14px}
+  @media (prefers-color-scheme:dark){:root{--bg:#0f1115;--surface:#171a21;--surface-2:#1e222b;--border:#2a2f3a;--text:#eef0f4;--muted:#a3abbb;--faint:#6f7889;--accent:#3ba55c;--accent-ink:#0b1f12;--good:#57d977;--ok:#a6d84a;--mid:#e7b83a;--low:#f0894a;--save:#57d977;--shadow:0 1px 2px rgba(0,0,0,.3),0 8px 28px rgba(0,0,0,.35)}}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 16px}
+  header{background:linear-gradient(180deg,var(--surface),var(--bg));border-bottom:1px solid var(--border)}
+  .head{display:flex;align-items:center;gap:14px;padding:20px 0 16px}
+  .logo{width:38px;height:38px;border-radius:10px;background:var(--accent);display:grid;place-items:center;color:var(--accent-ink);font-weight:800;font-size:20px;flex:none}
+  .title h1{margin:0;font-size:20px;font-weight:800;letter-spacing:-.2px}
+  .title p{margin:2px 0 0;color:var(--muted);font-size:13px}
+  .updated{margin-left:auto;text-align:right;color:var(--faint);font-size:12px;line-height:1.35}
+  .controls{display:flex;flex-wrap:wrap;gap:10px;padding:14px 0 18px}
+  .field{position:relative;display:flex;align-items:center}
+  .field input,.field select{appearance:none;background:var(--surface);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:10px;font-size:14px;outline:none}
+  .field input{min-width:230px}
+  .field input:focus,.field select:focus{border-color:var(--accent)}
+  .field select{padding-right:30px;cursor:pointer}
+  .field.sel::after{content:"";position:absolute;right:11px;top:50%;width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:translateY(-70%) rotate(45deg);pointer-events:none}
+  .toggle{display:inline-flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);padding:9px 12px;border-radius:10px;font-size:13.5px;color:var(--muted);cursor:pointer;user-select:none}
+  .toggle input{accent-color:var(--accent)}
+  .count{margin-left:auto;align-self:center;color:var(--faint);font-size:13px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;padding:4px 0 24px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column}
+  .top{display:flex;gap:12px;padding:12px}
+  .box{width:74px;height:104px;border-radius:8px;object-fit:cover;background:var(--surface-2);flex:none}
+  .meta{min-width:0;flex:1;display:flex;flex-direction:column}
+  .game-title{font-weight:700;font-size:15px;line-height:1.25;margin:1px 0 4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .sub{color:var(--muted);font-size:12.5px}
+  .score{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:34px;padding:0 6px;border-radius:8px;font-weight:800;font-size:15px;color:#fff;flex:none}
+  .score.na{background:var(--faint);font-size:12px}
+  .scorewrap{display:flex;align-items:center;gap:8px;margin-top:auto;padding-top:8px}
+  .scorewrap small{color:var(--faint);font-size:11px;text-transform:uppercase;letter-spacing:.4px}
+  .prices{border-top:1px solid var(--border);padding:12px;display:flex;flex-direction:column;gap:8px}
+  .best{background:var(--surface-2);border-radius:10px;padding:10px;display:flex;align-items:center;gap:10px}
+  .best .flag{font-size:20px}.best .bwrap{min-width:0}
+  .best .bregion{font-size:12px;color:var(--muted)}
+  .best .bprice{font-weight:800;font-size:17px;font-variant-numeric:tabular-nums}
+  .save{margin-left:auto;background:var(--save);color:#04240f;font-weight:800;font-size:13px;padding:4px 9px;border-radius:999px;white-space:nowrap}
+  .na2{color:var(--faint);font-size:13px;padding:6px 0}
+  .expand{border:none;background:none;color:var(--accent);font-weight:600;font-size:13px;cursor:pointer;padding:4px 0;text-align:left}
+  .regions{display:none;flex-direction:column;gap:1px;margin-top:2px;border-radius:10px;overflow:hidden}
+  .regions.open{display:flex}
+  .rrow{display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--surface-2);font-size:13px}
+  .rrow .flag{font-size:16px}.rrow .rname{flex:1;min-width:0}
+  .rrow .racc{color:var(--faint);font-size:11px}
+  .rrow .rlocal{color:var(--muted);font-size:11.5px;font-variant-numeric:tabular-nums}
+  .rrow .rclp{font-weight:700;font-variant-numeric:tabular-nums;min-width:78px;text-align:right}
+  .rrow a{color:var(--accent);text-decoration:none;font-size:12px;font-weight:600}
+  .state{padding:60px 16px;text-align:center;color:var(--muted)}
+  .spinner{width:26px;height:26px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 12px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .more{display:block;margin:8px auto 40px;background:var(--accent);color:var(--accent-ink);border:none;padding:11px 20px;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer}
+  footer{border-top:1px solid var(--border);color:var(--faint);font-size:12.5px;line-height:1.6;padding:20px 0 40px}
+  footer b{color:var(--muted)}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="head">
+      <div class="logo">X</div>
+      <div class="title">
+        <h1>Comparador de precios Xbox</h1>
+        <p>Todo el catalogo, por region, ordenado por nota. Se actualiza solo cada dia.</p>
+      </div>
+      <div class="updated" id="updated"></div>
+    </div>
+    <div class="controls" id="controls" hidden>
+      <div class="field"><input id="q" type="search" placeholder="Buscar juego..." autocomplete="off"></div>
+      <div class="field sel"><select id="sort">
+        <option value="mc">Nota (mayor a menor)</option>
+        <option value="clp">Precio mas barato (CLP)</option>
+        <option value="save">Mayor ahorro vs Chile</option>
+        <option value="disc">Mayor descuento</option>
+        <option value="name">Nombre (A-Z)</option>
+        <option value="year">Mas nuevos</option>
+      </select></div>
+      <label class="toggle"><input type="checkbox" id="gc"> Solo regiones con gift card facil</label>
+      <label class="toggle"><input type="checkbox" id="rated"> Solo con nota</label>
+      <span class="count" id="count"></span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div id="state" class="state"><div class="spinner"></div><div>Cargando catalogo...</div></div>
+  <div class="grid" id="grid"></div>
+  <button class="more" id="more" hidden>Cargar mas</button>
+</main>
+
+<footer class="wrap"><div id="foot"></div></footer>
+
+<script>
+let GAMES=[], META=null, REGIONS=[], REG={}, ROWS=[], shown=0, PAGE=60;
+const $=s=>document.querySelector(s);
+const flags={CL:'🇨🇱',AR:'🇦🇷',TR:'🇹🇷',BR:'🇧🇷',US:'🇺🇸',UA:'🇺🇦',PL:'🇵🇱',CO:'🇨🇴',IN:'🇮🇳',NG:'🇳🇬',EG:'🇪🇬',ZA:'🇿🇦'};
+const fmtCLP=n=>n==null?'-':'$'+Math.round(n).toLocaleString('es-CL');
+const fmtLocal=(n,c)=>n==null?'-':Number(n).toLocaleString('es-CL',{maximumFractionDigits:2})+' '+c;
+const scoreColor=mc=>mc>=90?'var(--good)':mc>=80?'var(--ok)':mc>=70?'var(--mid)':'var(--low)';
+
+async function boot(){
+  try{
+    const [g,m]=await Promise.all([
+      fetch('./data/games.json').then(r=>r.json()),
+      fetch('./data/meta.json').then(r=>r.json())
+    ]);
+    GAMES=g; META=m; REGIONS=m.regions; REGIONS.forEach(r=>REG[r.code]=r);
+  }catch(e){ $('#state').innerHTML='<div>No pude cargar los datos todavia. Si recien desplegaste, espera a que el robot corra por primera vez.</div>'; return; }
+
+  // precompute cheapest per game
+  const refCode=(REGIONS.find(r=>r.ref)||REGIONS[0]).code;
+  for(const g of GAMES){
+    const list=[]; let best=null,bestGC=null;
+    for(const R of REGIONS){ const p=g.r[R.code]; if(!p) continue; const it={code:R.code,local:p[0],clp:p[1],disc:p[2]}; list.push(it);
+      if(!best||it.clp<best.clp)best=it; if(R.giftCard&&(!bestGC||it.clp<bestGC.clp))bestGC=it; }
+    list.sort((a,b)=>a.clp-b.clp);
+    g._list=list; g._best=best; g._bestGC=bestGC; g._cl=g.r[refCode]?g.r[refCode][1]:null;
+    g._disc=list.reduce((mx,x)=>Math.max(mx,x.disc||0),0);
+  }
+  $('#state').hidden=true; $('#controls').hidden=false;
+  $('#updated').innerHTML='Actualizado: '+(META.updated?new Date(META.updated).toLocaleDateString('es-CL'):'-')+'<br>'+META.count.toLocaleString('es-CL')+' juegos · '+META.withRating.toLocaleString('es-CL')+' con nota';
+  $('#foot').innerHTML='<b>Datos:</b> tienda oficial de Xbox de cada region, convertidos a CLP. Notas de IGDB. <b>Pago:</b> comprar en otra region suele requerir gift card de ese pais o cambiar la region de la cuenta; el filtro deja solo las de gift card facil.';
+  ['#q','#sort','#gc','#rated'].forEach(s=>$(s).addEventListener('input',()=>{shown=0;render();}));
+  $('#more').addEventListener('click',()=>{shown+=PAGE;draw();});
+  render();
+}
+
+function render(){
+  const q=$('#q').value.trim().toLowerCase(), sort=$('#sort').value, gc=$('#gc').checked, rated=$('#rated').checked;
+  const bestOf=g=>gc?g._bestGC:g._best;
+  const saveOf=g=>{const b=bestOf(g);return(g._cl&&b&&b.clp<g._cl)?(1-b.clp/g._cl):-1;};
+  ROWS=GAMES.filter(g=>{
+    if(rated&&g.mc==null)return false;
+    if(gc&&!g._bestGC)return false;
+    if(q&&!g.t.toLowerCase().includes(q))return false;
+    return true;
+  });
+  ROWS.sort((a,b)=>{switch(sort){
+    case 'mc':return (b.mc??-1)-(a.mc??-1);
+    case 'clp':{const av=(bestOf(a)||{}).clp??Infinity,bv=(bestOf(b)||{}).clp??Infinity;return av-bv;}
+    case 'save':return saveOf(b)-saveOf(a);
+    case 'disc':return b._disc-a._disc;
+    case 'name':return a.t.localeCompare(b.t);
+    case 'year':return (b.y||0)-(a.y||0);
+  }});
+  $('#count').textContent=ROWS.length.toLocaleString('es-CL')+' juegos';
+  if(shown===0)shown=PAGE;
+  draw(true);
+}
+function draw(reset){
+  const grid=$('#grid'); if(reset)grid.innerHTML='';
+  const gc=$('#gc').checked;
+  const from=reset?0:grid.children.length;
+  for(let i=from;i<Math.min(shown,ROWS.length);i++) grid.appendChild(card(ROWS[i],gc));
+  $('#more').hidden = shown>=ROWS.length;
+}
+function card(g,gc){
+  const best=gc?g._bestGC:g._best;
+  const save=(g._cl&&best&&best.clp<g._cl)?Math.round((1-best.clp/g._cl)*100):null;
+  const el=document.createElement('div'); el.className='card';
+  const bestHTML=best?`<div class="best"><span class="flag">${flags[best.code]||''}</span><div class="bwrap"><div class="bregion">Mas barato en ${REG[best.code].name||best.code}${best.disc?` · -${best.disc}% oferta`:''}</div><div class="bprice">${fmtCLP(best.clp)} <span style="font-weight:500;color:var(--muted);font-size:12px">(${fmtLocal(best.local,REG[best.code].cur)})</span></div></div>${save!=null?`<span class="save">-${save}%</span>`:''}</div>`:`<div class="na2">Sin precio en las regiones seleccionadas.</div>`;
+  const regHTML=g._list.map(it=>`<div class="rrow"><span class="flag">${flags[it.code]||''}</span><span class="rname">${REG[it.code].name||it.code} <span class="racc">· ${REG[it.code].access}</span></span><span class="rlocal">${fmtLocal(it.local,REG[it.code].cur)}</span><span class="rclp">${fmtCLP(it.clp)}</span><a href="https://www.microsoft.com/store/productId/${g.id}?market=${it.code}" target="_blank" rel="noopener">Ver</a></div>`).join('');
+  const scoreEl=g.mc!=null?`<span class="score" style="background:${scoreColor(g.mc)}">${g.mc}</span><small>Metacritic/IGDB</small>`:`<span class="score na">N/A</span><small>sin nota</small>`;
+  el.innerHTML=`<div class="top">${g.img?`<img class="box" src="${g.img}" alt="" loading="lazy">`:`<div class="box"></div>`}<div class="meta"><div class="game-title">${g.t}</div><div class="sub">${g.y||''}</div><div class="scorewrap">${scoreEl}<span style="margin-left:auto;color:var(--muted);font-size:12.5px">Chile: <b>${fmtCLP(g._cl)}</b></span></div></div></div><div class="prices">${bestHTML}<button class="expand">Ver todas las regiones (${g._list.length}) ▾</button><div class="regions">${regHTML}</div></div>`;
+  const btn=el.querySelector('.expand'),bx=el.querySelector('.regions');
+  btn.addEventListener('click',()=>{bx.classList.toggle('open');btn.textContent=bx.classList.contains('open')?'Ocultar regiones ▴':`Ver todas las regiones (${g._list.length}) ▾`;});
+  return el;
+}
+boot();
+</script>
+</body>
+</html>
