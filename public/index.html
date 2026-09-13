@@ -27,6 +27,9 @@
   .toggle{display:inline-flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);padding:9px 12px;border-radius:10px;font-size:13.5px;color:var(--muted);cursor:pointer;user-select:none}
   .toggle input{accent-color:var(--accent)}
   .count{margin-left:auto;align-self:center;color:var(--faint);font-size:13px}
+  .tabs{display:flex;gap:4px;padding:8px 0 0}
+  .tab{background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-size:14.5px;font-weight:600;padding:8px 12px;cursor:pointer}
+  .tab.active{color:var(--text);border-bottom-color:var(--accent)}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;padding:4px 0 24px}
   .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column}
   .top{display:flex;gap:12px;padding:12px}
@@ -73,6 +76,10 @@
       </div>
       <div class="updated" id="updated"></div>
     </div>
+    <div class="tabs" id="tabs" hidden>
+      <button class="tab active" data-mode="all">Todos los juegos</button>
+      <button class="tab" data-mode="ofertas">🔥 Ofertas</button>
+    </div>
     <div class="controls" id="controls" hidden>
       <div class="field"><input id="q" type="search" placeholder="Buscar juego..." autocomplete="off"></div>
       <div class="field sel"><select id="sort">
@@ -99,7 +106,7 @@
 <footer class="wrap"><div id="foot"></div></footer>
 
 <script>
-let GAMES=[], META=null, REGIONS=[], REG={}, ROWS=[], shown=0, PAGE=60;
+let GAMES=[], META=null, REGIONS=[], REG={}, ROWS=[], shown=0, PAGE=60, mode='all';
 const $=s=>document.querySelector(s);
 const flags={CL:'🇨🇱',AR:'🇦🇷',TR:'🇹🇷',BR:'🇧🇷',US:'🇺🇸',UA:'🇺🇦',PL:'🇵🇱',CO:'🇨🇴',IN:'🇮🇳',NG:'🇳🇬',EG:'🇪🇬',ZA:'🇿🇦'};
 const fmtCLP=n=>n==null?'-':'$'+Math.round(n).toLocaleString('es-CL');
@@ -125,7 +132,14 @@ async function boot(){
     g._list=list; g._best=best; g._bestGC=bestGC; g._cl=g.r[refCode]?g.r[refCode][1]:null;
     g._disc=list.reduce((mx,x)=>Math.max(mx,x.disc||0),0);
   }
-  $('#state').hidden=true; $('#controls').hidden=false;
+  $('#state').hidden=true; $('#controls').hidden=false; $('#tabs').hidden=false;
+  document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    mode=t.dataset.mode;
+    if(mode==='ofertas') $('#sort').value='disc';
+    shown=0; render();
+  }));
   $('#updated').innerHTML='Actualizado: '+(META.updated?new Date(META.updated).toLocaleDateString('es-CL'):'-')+'<br>'+META.count.toLocaleString('es-CL')+' juegos · '+META.withRating.toLocaleString('es-CL')+' con nota';
   $('#foot').innerHTML='<b>Datos:</b> tienda oficial de Xbox de cada region, convertidos a CLP. Notas de IGDB. <b>Pago:</b> comprar en otra region suele requerir gift card de ese pais o cambiar la region de la cuenta; el filtro deja solo las de gift card facil.';
   ['#q','#sort','#gc','#rated'].forEach(s=>$(s).addEventListener('input',()=>{shown=0;render();}));
@@ -138,6 +152,7 @@ function render(){
   const bestOf=g=>gc?g._bestGC:g._best;
   const saveOf=g=>{const b=bestOf(g);return(g._cl&&b&&b.clp<g._cl)?(1-b.clp/g._cl):-1;};
   ROWS=GAMES.filter(g=>{
+    if(mode==='ofertas'&&!(g._disc>0))return false;
     if(rated&&g.mc==null)return false;
     if(gc&&!g._bestGC)return false;
     if(q&&!g.t.toLowerCase().includes(q))return false;
