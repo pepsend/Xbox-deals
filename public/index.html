@@ -30,33 +30,36 @@
   .tabs{display:flex;gap:4px;padding:8px 0 0}
   .tab{background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-size:14.5px;font-weight:600;padding:8px 12px;cursor:pointer}
   .tab.active{color:var(--text);border-bottom-color:var(--accent)}
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;padding:4px 0 24px}
-  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column}
-  .top{display:flex;gap:12px;padding:12px}
-  .box{width:74px;height:104px;border-radius:8px;object-fit:cover;background:var(--surface-2);flex:none}
-  .meta{min-width:0;flex:1;display:flex;flex-direction:column}
-  .game-title{font-weight:700;font-size:15px;line-height:1.25;margin:1px 0 4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-  .sub{color:var(--muted);font-size:12.5px}
-  .score{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:34px;padding:0 6px;border-radius:8px;font-weight:800;font-size:15px;color:#fff;flex:none}
-  .score.na{background:var(--faint);font-size:12px}
-  .scorewrap{display:flex;align-items:center;gap:8px;margin-top:auto;padding-top:8px}
+  .grid{display:flex;flex-direction:column;gap:10px;padding:6px 0 24px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:12px 14px;display:grid;grid-template-columns:60px 1fr minmax(230px,auto);gap:14px;align-items:center}
+  .box{width:60px;height:84px;border-radius:6px;object-fit:cover;background:var(--surface-2)}
+  .info{min-width:0}
+  .game-title{font-weight:700;font-size:15.5px;line-height:1.25;margin:0 0 3px}
+  .sub{color:var(--muted);font-size:12.5px;margin-bottom:7px}
+  .score{display:inline-flex;align-items:center;justify-content:center;min-width:32px;height:32px;padding:0 6px;border-radius:7px;font-weight:800;font-size:15px;color:#fff}
+  .score.na{background:var(--faint);font-size:11px}
+  .scorewrap{display:flex;align-items:center;gap:8px}
   .scorewrap small{color:var(--faint);font-size:11px;text-transform:uppercase;letter-spacing:.4px}
-  .prices{border-top:1px solid var(--border);padding:12px;display:flex;flex-direction:column;gap:8px}
-  .best{background:var(--surface-2);border-radius:10px;padding:10px;display:flex;align-items:center;gap:10px}
-  .best .flag{font-size:20px}.best .bwrap{min-width:0}
-  .best .bregion{font-size:12px;color:var(--muted)}
-  .best .bprice{font-weight:800;font-size:17px;font-variant-numeric:tabular-nums}
-  .save{margin-left:auto;background:var(--save);color:#04240f;font-weight:800;font-size:13px;padding:4px 9px;border-radius:999px;white-space:nowrap}
-  .na2{color:var(--faint);font-size:13px;padding:6px 0}
-  .expand{border:none;background:none;color:var(--accent);font-weight:600;font-size:13px;cursor:pointer;padding:4px 0;text-align:left}
-  .regions{display:none;flex-direction:column;gap:1px;margin-top:2px;border-radius:10px;overflow:hidden}
+  .pbox{display:flex;flex-direction:column;align-items:flex-end;text-align:right;gap:3px}
+  .chile{color:var(--muted);font-size:12px}
+  .bestline{display:flex;align-items:center;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+  .bestline .flag{font-size:18px}
+  .bregion{font-size:12.5px;color:var(--muted)}
+  .bprice{font-weight:800;font-size:17px;font-variant-numeric:tabular-nums}
+  .save{background:var(--save);color:#04240f;font-weight:800;font-size:12.5px;padding:3px 8px;border-radius:999px;white-space:nowrap}
+  .ends{color:var(--low);font-size:11.5px;font-weight:600}
+  .na2{color:var(--faint);font-size:13px}
+  .expand{grid-column:1/-1;border:none;background:none;color:var(--accent);font-weight:600;font-size:13px;cursor:pointer;padding:6px 0 2px;text-align:left}
+  .regions{grid-column:1/-1;display:none;flex-direction:column;gap:1px;border-radius:8px;overflow:hidden}
   .regions.open{display:flex}
   .rrow{display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--surface-2);font-size:13px}
   .rrow .flag{font-size:16px}.rrow .rname{flex:1;min-width:0}
   .rrow .racc{color:var(--faint);font-size:11px}
+  .rrow .rend{color:var(--low);font-size:11px}
   .rrow .rlocal{color:var(--muted);font-size:11.5px;font-variant-numeric:tabular-nums}
-  .rrow .rclp{font-weight:700;font-variant-numeric:tabular-nums;min-width:78px;text-align:right}
+  .rrow .rclp{font-weight:700;font-variant-numeric:tabular-nums;min-width:86px;text-align:right}
   .rrow a{color:var(--accent);text-decoration:none;font-size:12px;font-weight:600}
+  @media(max-width:600px){.card{grid-template-columns:56px 1fr}.pbox{grid-column:1/-1;align-items:flex-start;text-align:left}.bestline{justify-content:flex-start}}
   .state{padding:60px 16px;text-align:center;color:var(--muted)}
   .spinner{width:26px;height:26px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 12px}
   @keyframes spin{to{transform:rotate(360deg)}}
@@ -112,6 +115,8 @@ const flags={CL:'🇨🇱',AR:'🇦🇷',TR:'🇹🇷',BR:'🇧🇷',US:'🇺�
 const fmtCLP=n=>n==null?'-':'$'+Math.round(n).toLocaleString('es-CL');
 const fmtLocal=(n,c)=>n==null?'-':Number(n).toLocaleString('es-CL',{maximumFractionDigits:2})+' '+c;
 const scoreColor=mc=>mc>=90?'var(--good)':mc>=80?'var(--ok)':mc>=70?'var(--mid)':'var(--low)';
+const MESES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+const fmtDate=s=>{if(!s)return null;const p=s.split('-');return (+p[2])+' '+MESES[(+p[1])-1]+' '+p[0];};
 
 async function boot(){
   try{
@@ -126,10 +131,11 @@ async function boot(){
   const refCode=(REGIONS.find(r=>r.ref)||REGIONS[0]).code;
   for(const g of GAMES){
     const list=[]; let best=null,bestGC=null;
-    for(const R of REGIONS){ const p=g.r[R.code]; if(!p) continue; const it={code:R.code,local:p[0],clp:p[1],disc:p[2]}; list.push(it);
+    for(const R of REGIONS){ const p=g.r[R.code]; if(!p) continue; const it={code:R.code,local:p[0],clp:p[1],disc:p[2],end:p[3]||null}; list.push(it);
       if(!best||it.clp<best.clp)best=it; if(R.giftCard&&(!bestGC||it.clp<bestGC.clp))bestGC=it; }
     list.sort((a,b)=>a.clp-b.clp);
-    g._list=list; g._best=best; g._bestGC=bestGC; g._cl=g.r[refCode]?g.r[refCode][1]:null;
+    let bestOffer=null; for(const it of list){ if(it.disc>0 && (!bestOffer||it.clp<bestOffer.clp)) bestOffer=it; }
+    g._list=list; g._best=best; g._bestGC=bestGC; g._bestOffer=bestOffer; g._cl=g.r[refCode]?g.r[refCode][1]:null;
     g._disc=list.reduce((mx,x)=>Math.max(mx,x.disc||0),0);
   }
   $('#state').hidden=true; $('#controls').hidden=false; $('#tabs').hidden=false;
@@ -178,13 +184,18 @@ function draw(reset){
   $('#more').hidden = shown>=ROWS.length;
 }
 function card(g,gc){
-  const best=gc?g._bestGC:g._best;
+  let best=gc?g._bestGC:g._best;
+  if(mode==='ofertas'&&g._bestOffer) best=g._bestOffer;
   const save=(g._cl&&best&&best.clp<g._cl)?Math.round((1-best.clp/g._cl)*100):null;
   const el=document.createElement('div'); el.className='card';
-  const bestHTML=best?`<div class="best"><span class="flag">${flags[best.code]||''}</span><div class="bwrap"><div class="bregion">Mas barato en ${REG[best.code].name||best.code}${best.disc?` · -${best.disc}% oferta`:''}</div><div class="bprice">${fmtCLP(best.clp)} <span style="font-weight:500;color:var(--muted);font-size:12px">(${fmtLocal(best.local,REG[best.code].cur)})</span></div></div>${save!=null?`<span class="save">-${save}%</span>`:''}</div>`:`<div class="na2">Sin precio en las regiones seleccionadas.</div>`;
-  const regHTML=g._list.map(it=>`<div class="rrow"><span class="flag">${flags[it.code]||''}</span><span class="rname">${REG[it.code].name||it.code} <span class="racc">· ${REG[it.code].access}</span></span><span class="rlocal">${fmtLocal(it.local,REG[it.code].cur)}</span><span class="rclp">${fmtCLP(it.clp)}</span><a href="https://www.microsoft.com/store/productId/${g.id}?market=${it.code}" target="_blank" rel="noopener">Ver</a></div>`).join('');
-  const scoreEl=g.mc!=null?`<span class="score" style="background:${scoreColor(g.mc)}">${g.mc}</span><small>Metacritic/IGDB</small>`:`<span class="score na">N/A</span><small>sin nota</small>`;
-  el.innerHTML=`<div class="top">${g.img?`<img class="box" src="${g.img}" alt="" loading="lazy">`:`<div class="box"></div>`}<div class="meta"><div class="game-title">${g.t}</div><div class="sub">${g.y||''}</div><div class="scorewrap">${scoreEl}<span style="margin-left:auto;color:var(--muted);font-size:12.5px">Chile: <b>${fmtCLP(g._cl)}</b></span></div></div></div><div class="prices">${bestHTML}<button class="expand">Ver todas las regiones (${g._list.length}) ▾</button><div class="regions">${regHTML}</div></div>`;
+  const scoreEl=g.mc!=null?`<span class="score" style="background:${scoreColor(g.mc)}">${g.mc}</span><small>Nota IGDB</small>`:`<span class="score na">N/A</span><small>sin nota</small>`;
+  let pbox;
+  if(best){
+    const endTxt=(best.disc&&best.end)?`<div class="ends">⏳ Oferta hasta el ${fmtDate(best.end)}</div>`:'';
+    pbox=`<div class="pbox"><div class="chile">Chile: <b>${fmtCLP(g._cl)}</b></div><div class="bestline"><span class="flag">${flags[best.code]||''}</span><span class="bregion">${REG[best.code].name||best.code}</span><span class="bprice">${fmtCLP(best.clp)}</span>${best.disc?`<span class="save">-${best.disc}%</span>`:(save!=null?`<span class="save">-${save}%</span>`:'')}</div><div class="chile">${fmtLocal(best.local,REG[best.code].cur)}${save!=null?` · ahorras ${save}%`:''}</div>${endTxt}</div>`;
+  } else pbox=`<div class="pbox"><div class="na2">Sin precio</div></div>`;
+  const regHTML=g._list.map(it=>`<div class="rrow"><span class="flag">${flags[it.code]||''}</span><span class="rname">${REG[it.code].name||it.code} <span class="racc">· ${REG[it.code].access}</span>${(it.disc&&it.end)?`<span class="rend"> · oferta hasta ${fmtDate(it.end)}</span>`:''}</span><span class="rlocal">${fmtLocal(it.local,REG[it.code].cur)}</span><span class="rclp">${fmtCLP(it.clp)}${it.disc?` <span style="color:var(--save)">-${it.disc}%</span>`:''}</span><a href="https://www.microsoft.com/store/productId/${g.id}?market=${it.code}" target="_blank" rel="noopener">Ver</a></div>`).join('');
+  el.innerHTML=`${g.img?`<img class="box" src="${g.img}" alt="" loading="lazy">`:`<div class="box"></div>`}<div class="info"><div class="game-title">${g.t}</div><div class="sub">${g.y||''}</div><div class="scorewrap">${scoreEl}</div></div>${pbox}<button class="expand">Ver todas las regiones (${g._list.length}) ▾</button><div class="regions">${regHTML}</div>`;
   const btn=el.querySelector('.expand'),bx=el.querySelector('.regions');
   btn.addEventListener('click',()=>{bx.classList.toggle('open');btn.textContent=bx.classList.contains('open')?'Ocultar regiones ▴':`Ver todas las regiones (${g._list.length}) ▾`;});
   return el;
