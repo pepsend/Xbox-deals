@@ -38,5 +38,9 @@ jobs:
             echo "Sin cambios."
           else
             git commit -m "Datos: $(date -u +%Y-%m-%d)"
-            git push
+            # Sincroniza con el repo antes de guardar (evita choques si algo cambio mientras corria)
+            for i in 1 2 3; do
+              git pull --rebase --autostash origin main && git push && break
+              echo "reintento $i..."; sleep 5
+            done
           fi
