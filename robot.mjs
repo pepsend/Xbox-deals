@@ -78,13 +78,15 @@ async function crawlRegion(region) {
       const p = priceById[id];
       if (!p || !(p.listPrice > 0)) continue;         // omite gratis / sin precio
       if (s.productKind && s.productKind !== 'Game') continue; // solo juegos
+      const disc = Math.round(p.discountPercentage || 0);
       items[id] = {
         title: s.title || items[id]?.title || id,
         img: pickImg(s) || items[id]?.img || null,
         year: yearOf(s),
         list: p.listPrice, msrp: p.msrp || p.listPrice,
         cur: p.currency || region.cur,
-        disc: Math.round(p.discountPercentage || 0),
+        disc,
+        ends: disc > 0 ? endDateOf(p.endDateUtc) : null,   // fecha fin de oferta
       };
     }
 
@@ -115,6 +117,12 @@ function yearOf(s) {
   if (!d) return null;
   const y = new Date(d).getFullYear();
   return (y > 1990 && y < 2100) ? y : null;
+}
+function endDateOf(s) {
+  if (!s) return null;
+  const d = new Date(s); const y = d.getFullYear();
+  if (!(y > 2000 && y < 2100)) return null;   // ignora el placeholder lejano (9998)
+  return d.toISOString().slice(0, 10);          // YYYY-MM-DD
 }
 
 // --- Tipo de cambio (base CLP) ----------------------------------------------
@@ -178,7 +186,9 @@ async function main() {
       if (!it) continue;
       const clp = toCLP(it.list, it.cur);
       if (clp == null) continue;
-      prices[r.code] = [Math.round(it.list * 100) / 100, Math.round(clp), it.disc]; // [local, clp, disc%]
+      const cell = [Math.round(it.list * 100) / 100, Math.round(clp), it.disc]; // [local, clp, disc%, (fin)]
+      if (it.ends) cell.push(it.ends);
+      prices[r.code] = cell;
     }
     if (Object.keys(prices).length === 0) continue;
     games.push({
