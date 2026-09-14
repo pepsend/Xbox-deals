@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -134,9 +133,14 @@
   .spinner{width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--accent);
     border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 14px}
   @keyframes spin{to{transform:rotate(360deg)}}
-  .more{display:block;margin:6px auto 44px;background:var(--surface);color:var(--text);border:1px solid var(--border-2);
-    padding:11px 22px;border-radius:11px;font-family:'Sora','Inter',system-ui,sans-serif;font-weight:600;font-size:14px;cursor:pointer}
-  .more:hover{border-color:var(--accent);color:var(--accent)}
+  .pager{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px;padding:10px 0 46px}
+  .pbtn{min-width:38px;height:38px;padding:0 11px;border-radius:10px;border:1px solid var(--border);background:var(--surface);
+    color:var(--text);font-family:'Sora','Inter',system-ui,sans-serif;font-weight:600;font-size:14px;cursor:pointer}
+  .pbtn:hover:not(:disabled):not(.active){border-color:var(--accent);color:var(--accent)}
+  .pbtn.active{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+  .pbtn:disabled{opacity:.4;cursor:default}
+  .pgap{color:var(--faint);padding:0 3px}
+  .pinfo{width:100%;text-align:center;color:var(--faint);font-size:12px;margin-top:6px}
   footer{border-top:1px solid var(--border);color:var(--faint);font-size:12px;line-height:1.7;padding:22px 0 46px}
   footer b{color:var(--muted)}
 
@@ -188,13 +192,13 @@
 <main class="wrap">
   <div id="state" class="state"><div class="spinner"></div><div>Cargando catalogo...</div></div>
   <div class="grid" id="grid"></div>
-  <button class="more" id="more" hidden>Cargar mas</button>
+  <div class="pager" id="pager"></div>
 </main>
 
 <footer class="wrap"><div id="foot"></div></footer>
 
 <script>
-let GAMES=[], META=null, REGIONS=[], REG={}, ROWS=[], shown=0, PAGE=50, mode='all';
+let GAMES=[], META=null, REGIONS=[], REG={}, ROWS=[], page=1, PER=40, mode='all';
 const $=s=>document.querySelector(s);
 const fmtCLP=n=>n==null?'-':'$'+Math.round(n).toLocaleString('es-CL');
 const fmtLocal=(n,c)=>n==null?'-':Number(n).toLocaleString('es-CL',{maximumFractionDigits:2})+' '+c;
@@ -234,10 +238,9 @@ async function boot(){
   $('#foot').innerHTML='<b>Datos:</b> tienda oficial de Xbox de cada region, convertidos a CLP con el tipo de cambio del dia. Notas de IGDB.';
   document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
     document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active')); t.classList.add('active');
-    mode=t.dataset.mode; if(mode==='ofertas')$('#sort').value='disc'; shown=0; render();
+    mode=t.dataset.mode; if(mode==='ofertas')$('#sort').value='disc'; render();
   }));
-  ['#q','#sort','#rated'].forEach(s=>$(s).addEventListener('input',()=>{shown=0;render();}));
-  $('#more').addEventListener('click',()=>{shown+=PAGE;draw();});
+  ['#q','#sort','#rated'].forEach(s=>$(s).addEventListener('input',()=>render()));
   render();
 }
 
@@ -260,14 +263,33 @@ function render(){
     case 'year':return (b.y||0)-(a.y||0);
   }});
   $('#count').textContent=ROWS.length.toLocaleString('es-CL')+' juegos';
-  if(shown===0)shown=PAGE;
-  draw(true);
+  page=1;
+  draw();
 }
-function draw(reset){
-  const grid=$('#grid'); if(reset)grid.innerHTML='';
-  const from=reset?0:grid.children.length;
-  for(let i=from;i<Math.min(shown,ROWS.length);i++) grid.appendChild(card(ROWS[i]));
-  $('#more').hidden = shown>=ROWS.length;
+function draw(){
+  const grid=$('#grid'); grid.innerHTML='';
+  const start=(page-1)*PER, end=Math.min(start+PER, ROWS.length);
+  for(let i=start;i<end;i++) grid.appendChild(card(ROWS[i]));
+  buildPager();
+}
+function goPage(p){
+  const total=Math.max(1,Math.ceil(ROWS.length/PER));
+  page=Math.min(Math.max(1,p),total); draw(); window.scrollTo({top:0,behavior:'smooth'});
+}
+function buildPager(){
+  const total=Math.max(1,Math.ceil(ROWS.length/PER));
+  const el=$('#pager'); el.innerHTML='';
+  if(total<=1) return;
+  const mk=(label,p,active,disabled)=>{const b=document.createElement('button');b.className='pbtn'+(active?' active':'');
+    b.textContent=label; if(disabled)b.disabled=true; else if(!active)b.addEventListener('click',()=>goPage(p)); el.appendChild(b);};
+  const gap=()=>{const s=document.createElement('span');s.className='pgap';s.textContent='…';el.appendChild(s);};
+  mk('‹',page-1,false,page===1);
+  const set=new Set([1,2,total-1,total,page-1,page,page+1]);
+  const arr=[...set].filter(p=>p>=1&&p<=total).sort((a,b)=>a-b);
+  let prev=0;
+  for(const p of arr){ if(p-prev>1) gap(); mk(String(p),p,p===page,false); prev=p; }
+  mk('›',page+1,false,page===total);
+  const info=document.createElement('span');info.className='pinfo';info.textContent='Pagina '+page+' de '+total.toLocaleString('es-CL');el.appendChild(info);
 }
 function card(g){
   let best=g._best;
