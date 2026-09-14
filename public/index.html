@@ -21,6 +21,16 @@
     --gap:16px;
   }
   html{color-scheme:dark}
+  :root[data-theme="light"]{
+    --bg:#eef0f4; --bg2:#f5f6f9; --surface:#ffffff; --surface-2:#f1f3f7; --raise:#f7f8fb;
+    --border:#e4e7ee; --border-2:#d7dbe4;
+    --text:#161a22; --muted:#5a6474; --faint:#8b93a3;
+    --accent:#0f9d3a; --accent-2:#0c8531; --accent-ink:#ffffff;
+    --good:#159a4e; --ok:#7fae1b; --mid:#c98a00; --low:#d9622f;
+    --save:#0f9d3a; --save-ink:#ffffff;
+    --shadow:0 1px 2px rgba(20,22,27,.05), 0 6px 20px rgba(20,22,27,.06);
+  }
+  html[data-theme="light"]{color-scheme:light}
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--text);
     font:15px/1.5 'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;
@@ -39,6 +49,10 @@
   .brand p{margin:2px 0 0;color:var(--muted);font-size:12.5px}
   .stat{margin-left:auto;text-align:right;font-size:12px;color:var(--faint);line-height:1.4}
   .stat b{color:var(--muted);font-weight:600}
+  .themebtn{margin-left:14px;width:38px;height:38px;flex:none;border-radius:11px;border:1px solid var(--border);
+    background:var(--surface);color:var(--muted);cursor:pointer;display:grid;place-items:center}
+  .themebtn:hover{color:var(--text);border-color:var(--border-2)}
+  .themebtn svg{width:18px;height:18px}
 
   .tabs{display:flex;gap:2px;padding:2px 0 0}
   .tab{position:relative;background:none;border:none;color:var(--muted);font-family:'Sora','Inter',system-ui,sans-serif;font-weight:600;
@@ -133,6 +147,7 @@
     .pbox{grid-column:1/-1;align-items:flex-start;text-align:left;border-top:1px solid var(--border);padding-top:10px}
     .bestrow{justify-content:flex-start}
     .stat{display:none}
+    .themebtn{margin-left:auto}
   }
 </style>
 </head>
@@ -140,12 +155,12 @@
 <header>
   <div class="wrap">
     <div class="head">
-      <div class="mark"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c-2 1.3-6.5 5-8 9 2.6-2.4 5.7-4 8-4s5.4 1.6 8 4c-1.5-4-6-7.7-8-9zM4.4 12.8C3.5 14.3 3 16 3 17.7c0 1.4.5 2.7 1.3 3.6C6 19 9 15.7 12 13.9 9 15 6.2 15.5 4.4 12.8zm15.2 0C17.8 15.5 15 15 12 13.9c3 1.8 6 5.1 7.7 7.4.8-.9 1.3-2.2 1.3-3.6 0-1.7-.5-3.4-1.4-4.9z"/></svg></div>
       <div class="brand">
         <h1>Comparador de precios Xbox</h1>
         <p>Todo el catalogo, por region. Encuentra donde esta mas barato.</p>
       </div>
       <div class="stat" id="stat"></div>
+      <button class="themebtn" id="themebtn" title="Cambiar tema" aria-label="Cambiar tema"></button>
     </div>
     <div class="tabs" id="tabs" hidden>
       <button class="tab active" data-mode="all">Todos los juegos</button>
@@ -165,7 +180,6 @@
       <option value="name">Nombre (A-Z)</option>
       <option value="year">Mas nuevos</option>
     </select></div>
-    <label class="toggle"><input type="checkbox" id="gc"> Solo gift card facil</label>
     <label class="toggle"><input type="checkbox" id="rated"> Solo con nota</label>
     <span class="count" id="count"></span>
   </div>
@@ -190,6 +204,11 @@ const fmtDate=s=>{if(!s)return null;const p=s.split('-');return (+p[2])+' '+MESE
 const flagImg=c=>`<img class="flag" src="https://flagcdn.com/w40/${c.toLowerCase()}.png" alt="${c}" loading="lazy">`;
 const CLOCK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 1.8"/></svg>';
 const CHEV='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>';
+const SUN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.4 1.4M17.6 17.6L19 19M19 5l-1.4 1.4M6.4 17.6L5 19"/></svg>';
+const MOON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A8 8 0 1 1 11.2 3a6 6 0 0 0 9.8 9.8z"/></svg>';
+function applyTheme(t){ if(t==='light')document.documentElement.setAttribute('data-theme','light'); else document.documentElement.removeAttribute('data-theme'); const b=$('#themebtn'); if(b)b.innerHTML=(t==='light')?MOON:SUN; }
+(function(){ let t='dark'; try{t=localStorage.getItem('theme')||'dark';}catch(e){} applyTheme(t);
+  const b=$('#themebtn'); if(b)b.addEventListener('click',()=>{ t=(t==='light')?'dark':'light'; try{localStorage.setItem('theme',t);}catch(e){} applyTheme(t); }); })();
 
 async function boot(){
   try{
@@ -202,34 +221,33 @@ async function boot(){
 
   const refCode=(REGIONS.find(r=>r.ref)||REGIONS[0]).code;
   for(const g of GAMES){
-    const list=[]; let best=null,bestGC=null,bestOffer=null;
+    const list=[]; let best=null,bestOffer=null;
     for(const R of REGIONS){ const p=g.r[R.code]; if(!p) continue; const it={code:R.code,local:p[0],clp:p[1],disc:p[2],end:p[3]||null}; list.push(it);
-      if(!best||it.clp<best.clp)best=it; if(R.giftCard&&(!bestGC||it.clp<bestGC.clp))bestGC=it;
+      if(!best||it.clp<best.clp)best=it;
       if(it.disc>0&&(!bestOffer||it.clp<bestOffer.clp))bestOffer=it; }
     list.sort((a,b)=>a.clp-b.clp);
-    g._list=list; g._best=best; g._bestGC=bestGC; g._bestOffer=bestOffer;
+    g._list=list; g._best=best; g._bestOffer=bestOffer;
     g._cl=g.r[refCode]?g.r[refCode][1]:null; g._disc=list.reduce((mx,x)=>Math.max(mx,x.disc||0),0);
   }
   $('#state').hidden=true; $('#controls').hidden=false; $('#tabs').hidden=false;
   $('#stat').innerHTML='Actualizado '+(META.updated?new Date(META.updated).toLocaleDateString('es-CL'):'-')+'<br><b>'+META.count.toLocaleString('es-CL')+'</b> juegos · <b>'+META.withRating.toLocaleString('es-CL')+'</b> con nota';
-  $('#foot').innerHTML='<b>Datos:</b> tienda oficial de Xbox de cada region, convertidos a CLP con el tipo de cambio del dia. Notas de IGDB. <b>Pago:</b> comprar en otra region suele requerir gift card de ese pais o cambiar la region de la cuenta Xbox; el filtro deja solo las de gift card facil.';
+  $('#foot').innerHTML='<b>Datos:</b> tienda oficial de Xbox de cada region, convertidos a CLP con el tipo de cambio del dia. Notas de IGDB.';
   document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
     document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active')); t.classList.add('active');
     mode=t.dataset.mode; if(mode==='ofertas')$('#sort').value='disc'; shown=0; render();
   }));
-  ['#q','#sort','#gc','#rated'].forEach(s=>$(s).addEventListener('input',()=>{shown=0;render();}));
+  ['#q','#sort','#rated'].forEach(s=>$(s).addEventListener('input',()=>{shown=0;render();}));
   $('#more').addEventListener('click',()=>{shown+=PAGE;draw();});
   render();
 }
 
 function render(){
-  const q=$('#q').value.trim().toLowerCase(), sort=$('#sort').value, gc=$('#gc').checked, rated=$('#rated').checked;
-  const bestOf=g=>gc?g._bestGC:g._best;
+  const q=$('#q').value.trim().toLowerCase(), sort=$('#sort').value, rated=$('#rated').checked;
+  const bestOf=g=>g._best;
   const saveOf=g=>{const b=bestOf(g);return(g._cl&&b&&b.clp<g._cl)?(1-b.clp/g._cl):-1;};
   ROWS=GAMES.filter(g=>{
     if(mode==='ofertas'&&!(g._disc>0))return false;
     if(rated&&g.mc==null)return false;
-    if(gc&&!g._bestGC)return false;
     if(q&&!g.t.toLowerCase().includes(q))return false;
     return true;
   });
@@ -247,13 +265,12 @@ function render(){
 }
 function draw(reset){
   const grid=$('#grid'); if(reset)grid.innerHTML='';
-  const gc=$('#gc').checked;
   const from=reset?0:grid.children.length;
-  for(let i=from;i<Math.min(shown,ROWS.length);i++) grid.appendChild(card(ROWS[i],gc));
+  for(let i=from;i<Math.min(shown,ROWS.length);i++) grid.appendChild(card(ROWS[i]));
   $('#more').hidden = shown>=ROWS.length;
 }
-function card(g,gc){
-  let best=gc?g._bestGC:g._best;
+function card(g){
+  let best=g._best;
   if(mode==='ofertas'&&g._bestOffer) best=g._bestOffer;
   const save=(g._cl&&best&&best.clp<g._cl)?Math.round((1-best.clp/g._cl)*100):null;
   const el=document.createElement('div'); el.className='card';
@@ -269,7 +286,7 @@ function card(g,gc){
       <div class="sub2">${fmtLocal(best.local,REG[best.code].cur)}${save!=null?` · ahorras ${save}%`:''}</div>
       ${endTxt}</div>`;
   } else pbox=`<div class="pbox"><div class="na2">Sin precio</div></div>`;
-  const regHTML=g._list.map(it=>`<div class="rrow">${flagImg(it.code)}<span class="rname">${REG[it.code].name||it.code} <span class="racc">· ${REG[it.code].access}</span>${(it.disc&&it.end)?`<span class="rend"> · hasta ${fmtDate(it.end)}</span>`:''}</span><span class="rlocal">${fmtLocal(it.local,REG[it.code].cur)}</span><span class="rclp">${fmtCLP(it.clp)}</span>${it.disc?`<span class="rdisc">-${it.disc}%</span>`:''}<a href="https://www.microsoft.com/store/productId/${g.id}?market=${it.code}" target="_blank" rel="noopener">Ver</a></div>`).join('');
+  const regHTML=g._list.map(it=>`<div class="rrow">${flagImg(it.code)}<span class="rname">${REG[it.code].name||it.code}${(it.disc&&it.end)?`<span class="rend"> · oferta hasta ${fmtDate(it.end)}</span>`:''}</span><span class="rlocal">${fmtLocal(it.local,REG[it.code].cur)}</span><span class="rclp">${fmtCLP(it.clp)}</span>${it.disc?`<span class="rdisc">-${it.disc}%</span>`:''}<a href="https://www.microsoft.com/store/productId/${g.id}?market=${it.code}" target="_blank" rel="noopener">Ver</a></div>`).join('');
   el.innerHTML=`${g.img?`<img class="cover" src="${g.img}" alt="" loading="lazy">`:`<div class="cover ph">?</div>`}<div class="info"><div class="gtitle">${g.t}</div><div class="gmeta">${scoreEl}<span class="year">${g.y||''}</span></div></div>${pbox}<button class="expand">Ver todas las regiones (${g._list.length}) ${CHEV}</button><div class="regions">${regHTML}</div>`;
   const btn=el.querySelector('.expand'),bx=el.querySelector('.regions');
   btn.addEventListener('click',()=>{const o=bx.classList.toggle('open');btn.classList.toggle('open',o);});
