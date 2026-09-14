@@ -1,0 +1,27 @@
+name: Publicar sitio
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'public/**'
+      - '.github/workflows/publish-site.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: publish-site
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: touch public/.nojekyll
+      - uses: peaceiris/actions-gh-pages@v4
+        with:
+          personal_token: ${{ secrets.SITE_DEPLOY }}
+          external_repository: pepsend/xbox-deals-web
+          publish_dir: ./public
+          publish_branch: main
+          force_orphan: true

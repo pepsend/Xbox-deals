@@ -30,10 +30,9 @@ public/data/                       # datos generados por el robot (games.json, m
    -> Run workflow. Tarda un rato (recorre ~17.500 juegos x 12 regiones).
    Al terminar, aparecen `public/data/games.json` y `meta.json` commiteados.
 
-4. **Publicar en Netlify**: New site -> conecta este repo.
-   - Build command: (vacio)
-   - Publish directory: `public`
-   Cada corrida diaria hace un commit y Netlify redespliega solo.
+4. **Sitio**: se publica solo en GitHub Pages (repo publico `pepsend/xbox-deals-web`).
+   URL: https://pepsend.github.io/xbox-deals-web/
+   Cada corrida del robot hace un commit y Pages redespliega solo.
 
 ## Ajustes rapidos
 
