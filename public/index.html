@@ -177,12 +177,12 @@
   <div class="controls" id="controls" hidden>
     <div class="field"><input id="q" type="search" placeholder="Buscar juego..." autocomplete="off"></div>
     <div class="field sel"><select id="sort">
+      <option value="new" selected>Recien lanzados</option>
       <option value="mc">Nota (mayor a menor)</option>
       <option value="clp">Precio mas barato</option>
       <option value="save">Mayor ahorro vs Chile</option>
       <option value="disc">Mayor descuento</option>
       <option value="name">Nombre (A-Z)</option>
-      <option value="year">Mas nuevos</option>
     </select></div>
     <label class="toggle"><input type="checkbox" id="rated"> Solo con nota</label>
     <span class="count" id="count"></span>
@@ -232,6 +232,7 @@ async function boot(){
     list.sort((a,b)=>a.clp-b.clp);
     g._list=list; g._best=best; g._bestOffer=bestOffer;
     g._cl=g.r[refCode]?g.r[refCode][1]:null; g._disc=list.reduce((mx,x)=>Math.max(mx,x.disc||0),0);
+    g._rel=g.d || (g.y? (g.y+'-01-01'):'0000-00-00');
   }
   $('#state').hidden=true; $('#controls').hidden=false; $('#tabs').hidden=false;
   $('#stat').innerHTML='Actualizado '+(META.updated?new Date(META.updated).toLocaleDateString('es-CL'):'-')+'<br><b>'+META.count.toLocaleString('es-CL')+'</b> juegos · <b>'+META.withRating.toLocaleString('es-CL')+'</b> con nota';
@@ -260,7 +261,7 @@ function render(){
     case 'save':return saveOf(b)-saveOf(a);
     case 'disc':return b._disc-a._disc;
     case 'name':return a.t.localeCompare(b.t);
-    case 'year':return (b.y||0)-(a.y||0);
+    case 'new':return a._rel<b._rel?1:a._rel>b._rel?-1:0;
   }});
   $('#count').textContent=ROWS.length.toLocaleString('es-CL')+' juegos';
   page=1;

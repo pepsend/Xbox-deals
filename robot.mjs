@@ -83,6 +83,7 @@ async function crawlRegion(region) {
         title: s.title || items[id]?.title || id,
         img: pickImg(s) || items[id]?.img || null,
         year: yearOf(s),
+        d: dateStr(s.releaseDate),
         list: p.listPrice, msrp: p.msrp || p.listPrice,
         cur: p.currency || region.cur,
         disc,
@@ -123,6 +124,12 @@ function endDateOf(s) {
   const d = new Date(s); const y = d.getFullYear();
   if (!(y > 2000 && y < 2100)) return null;   // ignora el placeholder lejano (9998)
   return d.toISOString().slice(0, 10);          // YYYY-MM-DD
+}
+function dateStr(x) {
+  if (!x) return null;
+  const d = new Date(x); const y = d.getFullYear();
+  if (!(y > 1990 && y < 2100)) return null;
+  return d.toISOString().slice(0, 10);          // fecha de lanzamiento YYYY-MM-DD
 }
 
 // --- Tipo de cambio (base CLP) ----------------------------------------------
@@ -192,11 +199,14 @@ async function main() {
     }
     if (Object.keys(prices).length === 0) continue;
     games.push({
-      id, t: base.title, img: base.img, y: base.year || null,
+      id, t: base.title, img: base.img, y: base.year || null, d: base.d || null,
       mc: ratings[norm(base.title)] ?? null,
       r: prices,
     });
   }
+
+  // Proteccion: si una corrida trae muy pocos juegos, algo fallo -> no pisamos los datos buenos.
+  if (games.length < 3000) throw new Error('Solo ' + games.length + ' juegos con precio; parece corrida fallida, NO sobreescribo.');
 
   games.sort((a, b) => (b.mc ?? -1) - (a.mc ?? -1));
   await mkdir('public/data', { recursive: true });

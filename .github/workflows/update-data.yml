@@ -2,7 +2,7 @@ name: Actualizar precios Xbox
 
 on:
   schedule:
-    - cron: '0 9 * * *'      # todos los dias 09:00 UTC (06:00 Chile aprox)
+    - cron: '0 */4 * * *'      # cada 4 horas: pesca juegos nuevos y refresca precios
   workflow_dispatch:          # boton para correrlo a mano
 
 permissions:
