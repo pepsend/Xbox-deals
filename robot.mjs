@@ -203,12 +203,14 @@ async function main() {
       prices[r.code] = cell;
     }
     if (Object.keys(prices).length === 0) continue;
-    games.push({
+    const entry = {
       id, t: base.title, img: base.img, y: base.year || null, d: base.d || null,
       mc: ratings[norm(base.title)]?.mc ?? null,
-      g: ratings[norm(base.title)]?.g ?? [],
       r: prices,
-    });
+    };
+    const genres = ratings[norm(base.title)]?.g;
+    if (genres && genres.length) entry.g = genres;
+    games.push(entry);
   }
 
   // Proteccion: si una corrida trae muy pocos juegos, algo fallo -> no pisamos los datos buenos.

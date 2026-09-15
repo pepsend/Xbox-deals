@@ -123,6 +123,10 @@
   .score.na{background:var(--surface-2)!important;color:var(--faint);font-size:12px;font-weight:600}
   .slabel{color:var(--faint);font-size:11px;text-transform:uppercase;letter-spacing:.6px;font-weight:600}
   .year{color:var(--muted);font-size:12.5px}
+  .preorder-badge{display:inline-flex;align-items:center;gap:5px;background:color-mix(in srgb,var(--mid) 18%,transparent);
+    color:var(--mid);border:1px solid color-mix(in srgb,var(--mid) 40%,transparent);
+    font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;white-space:nowrap;letter-spacing:.2px}
+  .preorder-date{color:var(--mid);font-size:12.5px;font-weight:600}
   .genre-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}
   .gtag{font-size:11px;color:var(--faint);background:var(--surface-2);border:1px solid var(--border);
     padding:1px 7px;border-radius:5px;font-weight:500}
@@ -356,6 +360,9 @@ const fmtLocal=(n,c)=>n==null?'-':Number(n).toLocaleString('es-CL',{maximumFract
 const scoreColor=mc=>mc>=90?'var(--good)':mc>=80?'var(--ok)':mc>=70?'var(--mid)':'var(--low)';
 const MESES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 const fmtDate=s=>{if(!s)return null;const p=s.split('-');return (+p[2])+' '+MESES[(+p[1])-1]+' '+p[0];};
+const TODAY_STR=new Date().toISOString().slice(0,10);
+const isPreorder=g=>!!(g.d && g.d > TODAY_STR);
+const fmtRelDate=d=>{if(!d)return null;const p=d.split('-');return (+p[2])+' '+MESES[(+p[1])-1]+' '+p[0];};
 const flagImg=c=>`<img class="flag" src="https://flagcdn.com/w40/${c.toLowerCase()}.png" alt="${c}" loading="lazy">`;
 const CLOCK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 1.8"/></svg>';
 const CHEV='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>';
@@ -495,17 +502,16 @@ window.addEventListener('hashchange',()=>{if(GAMES.length)checkHash();});
 async function boot(){
   loadWL();updateWLBadge();
   try{
-    const [g,m]=await Promise.all([
+    const [g,m,h]=await Promise.all([
       fetch('./data/games.json').then(r=>r.json()),
-      fetch('./data/meta.json').then(r=>r.json())
+      fetch('./data/meta.json').then(r=>r.json()),
+      fetch('./data/history.json').then(r=>r.json()).catch(()=>({}))
     ]);
-    GAMES=g;META=m;REGIONS=m.regions;REGIONS.forEach(r=>REG[r.code]=r);
+    GAMES=g;META=m;REGIONS=m.regions;REGIONS.forEach(r=>REG[r.code]=r);HISTORY=h;
   }catch(e){
     $('#state').innerHTML='<div>No pude cargar los datos todavía. Si recién desplegaste, espera a que el robot corra por primera vez.</div>';
     return;
   }
-  try{HISTORY=await fetch('./data/history.json').then(r=>r.json());}catch(e){HISTORY={};}
-
   const refCode=(REGIONS.find(r=>r.ref)||REGIONS[0]).code;
   for(const g of GAMES){
     const list=[];let best=null,bestOffer=null;
@@ -622,7 +628,7 @@ function card(g){
   const regHTML=g._list.map(it=>`<div class="rrow">${flagImg(it.code)}<span class="rname">${REG[it.code].name||it.code}${(it.disc&&it.end)?`<span class="rend"> · oferta hasta ${fmtDate(it.end)}</span>`:''}</span><span class="rlocal">${fmtLocal(it.local,REG[it.code].cur)}</span><span class="rclp">${fmtCLP(it.clp)}</span>${it.disc?`<span class="rdisc">-${it.disc}%</span>`:''}<a href="https://www.microsoft.com/store/productId/${g.id}?market=${it.code}" target="_blank" rel="noopener">Ver</a></div>`).join('');
   const starred=WATCHLIST.has(g.id);
   el.innerHTML=`${g.img?`<img class="cover" src="${g.img}" alt="" loading="lazy">`:`<div class="cover ph">?</div>`}
-  <div class="info"><div class="gtitle">${g.t}</div><div class="gmeta">${scoreEl}<span class="year">${g.y||''}</span></div>${genreTags}</div>
+  <div class="info"><div class="gtitle">${g.t}</div><div class="gmeta">${scoreEl}${isPreorder(g)?`<span class="preorder-badge">🕐 Preventa · ${fmtRelDate(g.d)}</span>`:`<span class="year">${g.y||''}</span>`}</div>${genreTags}</div>
   ${pbox}
   <div class="actions">
     <button class="expand">Ver todas las regiones (${g._list.length}) ${CHEV}</button>
@@ -726,7 +732,7 @@ function renderDetail(g){
     ${coverEl}
     <div>
       <h1 class="detail-title">${g.t}</h1>
-      <div class="detail-score-row">${scoreEl}<span class="year">${g.y||''}</span></div>
+      <div class="detail-score-row">${scoreEl}${isPreorder(g)?`<span class="preorder-badge">🕐 Preventa · ${fmtRelDate(g.d)}</span>`:`<span class="year">${g.y||''}</span>`}</div>
       ${genreTags?`<div class="detail-genre-tags">${genreTags}</div>`:''}
       ${best?`<div class="detail-best">Más barato en <b>${REG[best.code]?.name||best.code}</b> — <span class="bprice">${fmtCLP(best.clp)}</span>${save?` <span class="tag">-${save}% vs Chile</span>`:''}</div>`:''}
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
