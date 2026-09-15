@@ -1,10 +1,11 @@
-// Service Worker — Xbox Deals
-// Estrategia: cache-first para assets estáticos, network-first para datos JSON
-const CACHE = 'xbox-deals-v1';
-const STATIC = ['./','./index.html','./manifest.json','./icon-192.png','./icon-512.png'];
+// Service Worker — Xbox Deals (v2)
+// Estrategia: network-first para HTML y datos, cache-first para assets estáticos
+const CACHE = 'xbox-deals-v2';
+const STATIC = ['./manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(STATIC)).then(() => self.skipWaiting()));
+  self.skipWaiting();
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(STATIC)));
 });
 
 self.addEventListener('activate', e => {
@@ -17,18 +18,37 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
-  // Datos JSON → network-first (siempre intentar lo más fresco)
+
+  // Navegación / Documento HTML -> Network-first (para que siempre se cargue la versión actualizada)
+  if (e.request.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname.endsWith('/')) {
+    e.respondWith(
+      fetch(e.request)
+        .then(r => {
+          if (r.ok) { const clone = r.clone(); caches.open(CACHE).then(c => c.put(e.request, clone)); }
+          return r;
+        })
+        .catch(() => caches.match(e.request).then(cached => cached || caches.match('./index.html')))
+    );
+    return;
+  }
+
+  // Datos JSON -> Network-first (para tener precios siempre actualizados)
   if (url.pathname.includes('/data/')) {
     e.respondWith(
       fetch(e.request)
-        .then(r => { const clone = r.clone(); caches.open(CACHE).then(c => c.put(e.request, clone)); return r; })
+        .then(r => {
+          if (r.ok) { const clone = r.clone(); caches.open(CACHE).then(c => c.put(e.request, clone)); }
+          return r;
+        })
         .catch(() => caches.match(e.request))
     );
     return;
   }
-  // Fuentes, flags y CDN externos → network-only
+
+  // Externos (imágenes Microsoft Store, Flags, Fonts) -> Network directo
   if (!url.origin.includes(self.location.origin)) return;
-  // Assets propios → cache-first
+
+  // Assets estáticos propios (iconos, manifest) -> Cache-first
   e.respondWith(
     caches.match(e.request).then(cached => {
       if (cached) return cached;
