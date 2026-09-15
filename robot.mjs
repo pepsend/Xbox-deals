@@ -88,6 +88,7 @@ async function crawlRegion(region) {
         cur: p.currency || region.cur,
         disc,
         ends: disc > 0 ? endDateOf(p.endDateUtc) : null,   // fecha fin de oferta
+        cats: (s.categories || []).filter(c => c && c !== 'Otros' && c !== 'Other'),
       };
     }
 
@@ -208,8 +209,10 @@ async function main() {
       mc: ratings[norm(base.title)]?.mc ?? null,
       r: prices,
     };
-    const genres = ratings[norm(base.title)]?.g;
-    if (genres && genres.length) entry.g = genres;
+    const igdbGenres = ratings[norm(base.title)]?.g || [];
+    const storeCats = base.cats || [];
+    const merged = [...new Set([...storeCats, ...igdbGenres])];
+    if (merged.length) entry.g = merged;
     games.push(entry);
   }
 
