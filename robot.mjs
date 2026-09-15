@@ -106,12 +106,11 @@ async function crawlRegion(region) {
 
 function pickImg(s) {
   const imgs = s.images || {};
-  const cand = imgs.boxArt || imgs.poster || imgs.superHeroArt || (Array.isArray(imgs) ? imgs[0] : null);
+  const cand = imgs.boxArt || imgs.featurePromotionalSquareArt || imgs.poster || imgs.superHeroArt || (Array.isArray(imgs) ? imgs[0] : null);
   let u = cand && (cand.url || cand.uri || cand);
-  if (!u) return null;
-  if (typeof u !== 'string') return null;
+  if (!u || typeof u !== 'string') return null;
   if (u.startsWith('//')) u = 'https:' + u;
-  return u + (u.includes('?') ? '&' : '?') + 'w=200&h=280&mode=scale&q=90';
+  return u.split('?')[0];
 }
 function yearOf(s) {
   const d = s.releaseDate || s.releaseDateUtc;

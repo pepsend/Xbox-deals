@@ -84,7 +84,7 @@
     padding:13px 16px;display:grid;grid-template-columns:76px 1fr minmax(238px,auto);gap:16px;align-items:center;
     transition:border-color .15s,transform .15s}
   .card:hover{border-color:var(--border-2)}
-  .cover{width:76px;height:108px;border-radius:9px;object-fit:cover;background:var(--surface-2);
+  .cover{width:76px;height:76px;border-radius:9px;object-fit:cover;background:var(--surface-2);
     box-shadow:0 4px 14px -4px rgba(0,0,0,.5)}
   .cover.ph{display:grid;place-items:center;color:var(--faint)}
   .info{min-width:0}
@@ -111,9 +111,11 @@
   .ends svg{width:12px;height:12px}
   .na2{color:var(--faint);font-size:13px}
 
-  .expand{grid-column:1/-1;justify-self:start;border:none;background:none;color:var(--accent);
-    font-weight:600;font-size:12.5px;cursor:pointer;padding:8px 0 2px;display:inline-flex;align-items:center;gap:5px}
-  .expand svg{width:12px;height:12px;transition:transform .2s}
+  .actions{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:8px 0 2px}
+  .expand,.dlcover{border:none;background:none;color:var(--accent);
+    font-weight:600;font-size:12.5px;cursor:pointer;padding:0;display:inline-flex;align-items:center;gap:5px}
+  .dlcover:disabled{opacity:.5;cursor:default}
+  .expand svg,.dlcover svg{width:12px;height:12px;transition:transform .2s}
   .expand.open svg{transform:rotate(180deg)}
   .regions{grid-column:1/-1;display:none;flex-direction:column;margin-top:4px;border:1px solid var(--border);
     border-radius:11px;overflow:hidden}
@@ -147,7 +149,7 @@
   @media(max-width:600px){
     .wrap{padding:0 14px}
     .card{grid-template-columns:64px 1fr;gap:13px}
-    .cover{width:64px;height:90px}
+    .cover{width:64px;height:64px}
     .pbox{grid-column:1/-1;align-items:flex-start;text-align:left;border-top:1px solid var(--border);padding-top:10px}
     .bestrow{justify-content:flex-start}
     .stat{display:none}
@@ -310,9 +312,10 @@ function card(g){
       ${endTxt}</div>`;
   } else pbox=`<div class="pbox"><div class="na2">Sin precio</div></div>`;
   const regHTML=g._list.map(it=>`<div class="rrow">${flagImg(it.code)}<span class="rname">${REG[it.code].name||it.code}${(it.disc&&it.end)?`<span class="rend"> · oferta hasta ${fmtDate(it.end)}</span>`:''}</span><span class="rlocal">${fmtLocal(it.local,REG[it.code].cur)}</span><span class="rclp">${fmtCLP(it.clp)}</span>${it.disc?`<span class="rdisc">-${it.disc}%</span>`:''}<a href="https://www.microsoft.com/store/productId/${g.id}?market=${it.code}" target="_blank" rel="noopener">Ver</a></div>`).join('');
-  el.innerHTML=`${g.img?`<img class="cover" src="${g.img}" alt="" loading="lazy">`:`<div class="cover ph">?</div>`}<div class="info"><div class="gtitle">${g.t}</div><div class="gmeta">${scoreEl}<span class="year">${g.y||''}</span></div></div>${pbox}<button class="expand">Ver todas las regiones (${g._list.length}) ${CHEV}</button><div class="regions">${regHTML}</div>`;
-  const btn=el.querySelector('.expand'),bx=el.querySelector('.regions');
+  el.innerHTML=`${g.img?`<img class="cover" src="${g.img}" alt="" loading="lazy">`:`<div class="cover ph">?</div>`}<div class="info"><div class="gtitle">${g.t}</div><div class="gmeta">${scoreEl}<span class="year">${g.y||''}</span></div></div>${pbox}<div class="actions"><button class="expand">Ver todas las regiones (${g._list.length}) ${CHEV}</button>${g.img?`<button class="dlcover" title="Descargar portada">${CHEV}</button>`:''}</div><div class="regions">${regHTML}</div>`;
+  const btn=el.querySelector('.expand'),bx=el.querySelector('.regions'),dlBtn=el.querySelector('.dlcover');
   btn.addEventListener('click',()=>{const o=bx.classList.toggle('open');btn.classList.toggle('open',o);});
+  if(dlBtn) dlBtn.addEventListener('click',async e=>{e.preventDefault();const a=document.createElement('a');a.href=g.img;a.download=`${g.id}.jpg`;document.body.appendChild(a);a.click();document.body.removeChild(a);});
   return el;
 }
 boot();
