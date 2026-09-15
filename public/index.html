@@ -502,12 +502,13 @@ window.addEventListener('hashchange',()=>{if(GAMES.length)checkHash();});
 async function boot(){
   loadWL();updateWLBadge();
   try{
+    const safeJson=r=>r.ok?r.json():Promise.resolve(null);
     const [g,m,h]=await Promise.all([
       fetch('./data/games.json').then(r=>r.json()),
       fetch('./data/meta.json').then(r=>r.json()),
-      fetch('./data/history.json').then(r=>r.json()).catch(()=>({}))
+      fetch('./data/history.json').then(safeJson).catch(()=>null)
     ]);
-    GAMES=g;META=m;REGIONS=m.regions;REGIONS.forEach(r=>REG[r.code]=r);HISTORY=h;
+    GAMES=g;META=m;REGIONS=m.regions;REGIONS.forEach(r=>REG[r.code]=r);HISTORY=h||{};
   }catch(e){
     $('#state').innerHTML='<div>No pude cargar los datos todavía. Si recién desplegaste, espera a que el robot corra por primera vez.</div>';
     return;
