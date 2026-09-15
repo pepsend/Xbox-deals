@@ -4,7 +4,7 @@
 //  les pega la nota (IGDB, opcional) y escribe public/data/*.json
 //  Sin dependencias: usa fetch nativo de Node 18+.
 // ============================================================================
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile, readFile } from 'node:fs/promises';
 
 // --- Regiones a comparar. La primera (CL) es la referencia -------------------
 const REGIONS = [
@@ -155,10 +155,16 @@ async function getRatings() {
     const map = {};
     // Trae juegos con nota critica (aggregated_rating), paginando.
     for (let off = 0; off < 20000; off += 500) {
-      const q = `fields name,aggregated_rating; where aggregated_rating != null & aggregated_rating_count >= 3; sort aggregated_rating desc; limit 500; offset ${off};`;
+      const q = `fields name,aggregated_rating,genres.name; where aggregated_rating != null & aggregated_rating_count >= 3; sort aggregated_rating desc; limit 500; offset ${off};`;
       const rows = await (await fetch('https://api.igdb.com/v4/games', { method:'POST', headers:h, body:q })).json();
       if (!Array.isArray(rows) || rows.length === 0) break;
-      for (const g of rows) { const k = norm(g.name); if (k && !map[k]) map[k] = Math.round(g.aggregated_rating); }
+      for (const g of rows) {
+        const k = norm(g.name);
+        if (k && !map[k]) {
+          const genres = (g.genres || []).map(x => x.name).filter(Boolean);
+          map[k] = { mc: Math.round(g.aggregated_rating), g: genres };
+        }
+      }
       await sleep(280); // IGDB ~4 req/s
     }
     console.log(`IGDB: ${Object.keys(map).length} juegos con nota.`);
@@ -199,7 +205,8 @@ async function main() {
     if (Object.keys(prices).length === 0) continue;
     games.push({
       id, t: base.title, img: base.img, y: base.year || null, d: base.d || null,
-      mc: ratings[norm(base.title)] ?? null,
+      mc: ratings[norm(base.title)]?.mc ?? null,
+      g: ratings[norm(base.title)]?.g ?? [],
       r: prices,
     });
   }
@@ -209,6 +216,31 @@ async function main() {
 
   games.sort((a, b) => (b.mc ?? -1) - (a.mc ?? -1));
   await mkdir('public/data', { recursive: true });
+
+  // --- Historial de precios (#2): acumula solo cuando el precio cambia ----------
+  let history = {};
+  try { history = JSON.parse(await readFile('public/data/history.json', 'utf8')); } catch {}
+  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+  for (const g of games) {
+    if (!history[g.id]) history[g.id] = {};
+    for (const [regionCode, cell] of Object.entries(g.r)) {
+      const clp = cell[1];
+      const disc = cell[2] || 0;
+      if (!history[g.id][regionCode]) history[g.id][regionCode] = [];
+      const entries = history[g.id][regionCode];
+      const last = entries[entries.length - 1];
+      // Solo agrega si no hay entradas o si el precio cambio
+      if (!last || last[1] !== clp) {
+        entries.push([today, clp, disc]);
+        // Cap: maximo 60 entradas por juego/region
+        if (entries.length > 60) history[g.id][regionCode] = entries.slice(-60);
+      }
+    }
+  }
+  await writeFile('public/data/history.json', JSON.stringify(history));
+  console.log(`Historial: ${Object.keys(history).length} juegos con datos historicos.`);
+  // ---------------------------------------------------------------------------
+
   await writeFile('public/data/games.json', JSON.stringify(games));
   await writeFile('public/data/meta.json', JSON.stringify({
     updated: new Date().toISOString(),
