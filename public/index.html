@@ -245,20 +245,159 @@
   svg.price-chart{width:100%;display:block;overflow:visible}
 
   @media(max-width:600px){
-    .wrap{padding:0 14px}
-    .card{grid-template-columns:64px 1fr;gap:13px}
-    .cover{width:64px;height:64px}
-    .pbox{grid-column:1/-1;align-items:flex-start;text-align:left;border-top:1px solid var(--border);padding-top:10px}
-    .bestrow{justify-content:flex-start}
+    .wrap{padding:0 12px}
+
+    /* Cabecera móvil compacta */
+    .head{padding:12px 0 8px;gap:10px}
+    .brand h1{font-size:16.5px;letter-spacing:-.3px}
+    .brand p{display:none}
     .stat{display:none}
-    .headbtns{margin-left:auto}
-    .act-group{margin-left:0;width:100%}
-    .act-btn{flex:1;justify-content:center;padding:8px 6px;font-size:11.5px}
-    .detail-hero{grid-template-columns:100px 1fr;gap:14px}
-    .detail-cover,.detail-cover-ph{width:100px;height:100px}
-    .detail-title{font-size:19px}
-    .modal{border-radius:16px 16px 0 0;position:fixed;bottom:0;left:0;right:0;max-height:88vh;max-width:100%}
+    .headbtns{margin-left:auto;gap:6px}
+    .themebtn,.notifbtn{width:35px;height:35px;border-radius:9px}
+    .themebtn svg,.notifbtn svg{width:16px;height:16px}
+
+    /* Tabs horizontales deslizables */
+    .tabs{overflow-x:auto;padding-bottom:2px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+    .tabs::-webkit-scrollbar{display:none}
+    .tab{padding:8px 12px;font-size:13px;white-space:nowrap}
+
+    /* Controles y filtros organizados en cuadrícula */
+    .controls{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 0 10px}
+    .controls .field:first-child{grid-column:1 / -1}
+    .controls .field input{min-width:0;width:100%;padding:9px 12px;font-size:13.5px}
+    .controls .field select{width:100%;padding:9px 26px 9px 10px;font-size:13px}
+    .toggle{grid-column:1 / 2;padding:8px 10px;font-size:12px;white-space:nowrap}
+    .count{grid-column:2 / 3;justify-self:end;align-self:center;font-size:12px}
+
+    /* Tarjeta de juego móvil */
+    .card{grid-template-columns:68px 1fr;gap:12px;padding:12px;border-radius:14px}
+    .cover{width:68px;height:68px;border-radius:8px}
+    .gtitle{font-size:15px;line-height:1.25;margin:0 0 4px}
+    .gmeta{gap:6px}
+    .score{min-width:30px;height:26px;font-size:13.5px;padding:0 4px;border-radius:6px}
+    .slabel{display:none}
+    .genre-tags{margin-top:4px}
+    .gtag{font-size:10.5px;padding:1px 6px}
+
+    /* Caja de precio destacada */
+    .pbox{
+      grid-column:1 / -1;
+      width:100%;
+      background:var(--surface-2);
+      border:1px solid var(--border);
+      border-radius:10px;
+      padding:10px 12px;
+      display:flex;
+      flex-direction:column;
+      align-items:stretch;
+      text-align:left;
+      gap:4px;
+    }
+    .pbox .bestrow{
+      justify-content:space-between;
+      width:100%;
+      gap:6px;
+      order:1;
+    }
+    .pbox .bestrow .bprice{font-size:18px}
+    .pbox .sub2{
+      font-size:11.5px;
+      order:2;
+      display:flex;
+      justify-content:space-between;
+    }
+    .pbox .chile{
+      font-size:11px;
+      order:3;
+      border-top:1px dashed var(--border);
+      padding-top:4px;
+      margin-top:2px;
+      display:flex;
+      justify-content:space-between;
+    }
+    .pbox .ends{
+      order:4;
+      font-size:11px;
+    }
+
+    /* Acciones móviles limpias */
+    .actions{
+      grid-column:1 / -1;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      align-items:stretch;
+      padding-top:2px;
+    }
+    .expand{
+      width:100%;
+      justify-content:center;
+      padding:8px 0;
+      font-size:12.5px;
+      border-radius:8px;
+      background:color-mix(in srgb,var(--accent) 8%,transparent);
+    }
+    .act-group{
+      margin-left:0;
+      width:100%;
+      display:flex;
+      gap:6px;
+    }
+    .act-btn{
+      flex:1;
+      min-width:0;
+      padding:8px 6px;
+      font-size:11.5px;
+      justify-content:center;
+      text-align:center;
+      border-radius:8px;
+      white-space:nowrap;
+    }
+    .act-btn.star-btn{
+      flex:0 0 38px;
+      padding:8px 0;
+    }
+    .act-btn.star-btn span{display:none}
+
+    /* Filas de regiones optimizadas para móvil */
+    .rrow{
+      display:grid;
+      grid-template-columns:auto 1fr auto;
+      grid-template-areas:
+        "flag name clp"
+        "space local link";
+      gap:2px 8px;
+      padding:8px 10px;
+      font-size:12.5px;
+    }
+    .rrow .flag{grid-area:flag;margin-top:2px}
+    .rrow .rname{grid-area:name;display:flex;align-items:center;gap:5px;flex-wrap:wrap;font-weight:600}
+    .rrow .rclp{grid-area:clp;text-align:right;font-weight:700}
+    .rrow .rlocal{grid-area:local;font-size:11px;color:var(--muted)}
+    .rrow .cmp-access{display:none}
+    .rrow a{grid-area:link;text-align:right;font-size:11.5px}
+
+    /* Vista detalle móvil */
+    .detail-hero{grid-template-columns:90px 1fr;gap:12px;padding:14px 0 18px}
+    .detail-cover,.detail-cover-ph{width:90px;height:90px;border-radius:10px}
+    .detail-title{font-size:18px}
+    .detail-section{padding:18px 0}
+
+    /* Modal comparador estilo Bottom Sheet */
     .modal-overlay{align-items:flex-end;padding:0}
+    .modal{
+      border-radius:20px 20px 0 0;
+      position:fixed;
+      bottom:0;
+      left:0;
+      right:0;
+      max-height:85vh;
+      max-width:100%;
+      border-bottom:none;
+    }
+    .modal-head{padding:14px 16px}
+    .modal-body{padding:0 0 20px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+    .cmp-table{min-width:480px}
   }
 </style>
 </head>
