@@ -1,6 +1,6 @@
-// Service Worker — Xbox Deals (v2)
+// Service Worker — Xbox Deals (v3)
 // Estrategia: network-first para HTML y datos, cache-first para assets estáticos
-const CACHE = 'xbox-deals-v2';
+const CACHE = 'xbox-deals-v3';
 const STATIC = ['./manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {

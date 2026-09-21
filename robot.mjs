@@ -193,14 +193,17 @@ async function main() {
   for (const id of allIds) {
     const base = byRegion[refCode][id] || firstMeta(byRegion, id);
     if (!base) continue;
+    const today = new Date().toISOString().slice(0, 10);
     const prices = {};
     for (const r of REGIONS) {
       const it = byRegion[r.code][id];
       if (!it) continue;
       const clp = toCLP(it.list, it.cur);
       if (clp == null) continue;
-      const cell = [Math.round(it.list * 100) / 100, Math.round(clp), it.disc]; // [local, clp, disc%, (fin)]
-      if (it.ends) cell.push(it.ends);
+      const isExpired = it.ends && it.ends < today;
+      const disc = isExpired ? 0 : it.disc;
+      const cell = [Math.round(it.list * 100) / 100, Math.round(clp), disc];
+      if (it.ends && !isExpired) cell.push(it.ends);
       prices[r.code] = cell;
     }
     if (Object.keys(prices).length === 0) continue;
@@ -219,13 +222,32 @@ async function main() {
   // Proteccion: si una corrida trae muy pocos juegos, algo fallo -> no pisamos los datos buenos.
   if (games.length < 3000) throw new Error('Solo ' + games.length + ' juegos con precio; parece corrida fallida, NO sobreescribo.');
 
-  games.sort((a, b) => (b.mc ?? -1) - (a.mc ?? -1));
+  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+
+  // Ordenar API / catálogo: nuevos lanzamientos día a día al inicio, luego preventas, luego catálogo
+  games.sort((a, b) => {
+    const aIsRel = a.d && a.d <= today;
+    const bIsRel = b.d && b.d <= today;
+    if (aIsRel && bIsRel) return b.d.localeCompare(a.d);
+    if (aIsRel && !bIsRel) return -1;
+    if (!aIsRel && bIsRel) return 1;
+
+    const aIsPre = a.d && a.d > today;
+    const bIsPre = b.d && b.d > today;
+    if (aIsPre && bIsPre) return a.d.localeCompare(b.d);
+    if (aIsPre && !bIsPre) return -1;
+    if (!aIsPre && bIsPre) return 1;
+
+    const aY = a.y || 0, bY = b.y || 0;
+    if (aY !== bY) return bY - aY;
+    return a.t.localeCompare(b.t);
+  });
+
   await mkdir('public/data', { recursive: true });
 
   // --- Historial de precios (#2): acumula solo cuando el precio cambia ----------
   let history = {};
   try { history = JSON.parse(await readFile('public/data/history.json', 'utf8')); } catch {}
-  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
   for (const g of games) {
     if (!history[g.id]) history[g.id] = {};
     for (const [regionCode, cell] of Object.entries(g.r)) {
@@ -246,11 +268,16 @@ async function main() {
   console.log(`Historial: ${Object.keys(history).length} juegos con datos historicos.`);
   // ---------------------------------------------------------------------------
 
+  const activeOffersCount = games.filter(g => Object.values(g.r).some(cell => cell[2] > 0)).length;
+  const newReleasesCount = games.filter(g => g.d && g.d <= today && g.d >= new Date(new Date(today).getTime() - 30 * 864e5).toISOString().slice(0, 10)).length;
+
   await writeFile('public/data/games.json', JSON.stringify(games));
   await writeFile('public/data/meta.json', JSON.stringify({
     updated: new Date().toISOString(),
     fxDate, count: games.length,
     withRating: games.filter(g => g.mc != null).length,
+    activeOffersCount,
+    newReleasesCount,
     regions: REGIONS,
   }));
   console.log(`== Listo: ${games.length} juegos escritos (${games.filter(g=>g.mc!=null).length} con nota) ==`);
