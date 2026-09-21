@@ -46,13 +46,13 @@
   }
   html{color-scheme:dark}
   :root[data-theme="light"]{
-    --bg:#f8fafc;--bg2:#f1f5f9;--surface:#ffffff;--surface-2:#f1f5f9;--raise:#e2e8f0;
-    --border:#e2e8f0;--border-2:#cbd5e1;
-    --text:#0f172a;--muted:#475569;--faint:#64748b;
-    --accent:#107c41;--accent-bright:#107c41;--accent-ink:#ffffff;
-    --good:#107c41;--ok:#65a30d;--mid:#d97706;--low:#dc2626;
-    --save:#107c41;--save-ink:#ffffff;
-    --shadow:0 1px 3px rgba(15,23,42,0.06),0 6px 16px -4px rgba(15,23,42,0.04);
+    --bg:#eceef3;--bg2:#e1e5ee;--surface:#ffffff;--surface-2:#e8ecf3;--raise:#dee3ec;
+    --border:rgba(15,23,42,0.09);--border-2:rgba(15,23,42,0.18);
+    --text:#1a2332;--muted:#4f5d73;--faint:#718096;
+    --accent:#0e7039;--accent-bright:#107c41;--accent-ink:#ffffff;
+    --good:#0e7039;--ok:#5c940b;--mid:#d97706;--low:#dc2626;
+    --save:#0e7039;--save-ink:#ffffff;
+    --shadow:0 1px 3px rgba(15,23,42,0.05),0 6px 18px -4px rgba(15,23,42,0.06);
   }
   html[data-theme="light"]{color-scheme:light}
   *{box-sizing:border-box}
@@ -95,20 +95,33 @@
   .alert-banner strong{color:var(--accent-bright);font-weight:600}
   .alert-close{margin-left:auto;border:none;background:none;color:var(--muted);cursor:pointer;font-size:18px;line-height:1;padding:0}
 
-  .controls{display:flex;flex-wrap:wrap;gap:10px;padding:16px 0 18px}
+  .controls{display:flex;flex-wrap:wrap;gap:10px;padding:16px 0 18px;align-items:center}
   .field{position:relative;display:flex}
   .field input,.field select{appearance:none;background:var(--surface);border:1px solid var(--border);
-    color:var(--text);padding:9px 13px;border-radius:10px;font:inherit;font-size:13.5px;outline:none;transition:border-color .15s}
-  .field input{min-width:230px}
+    color:var(--text);padding:9px 13px;border-radius:10px;font:inherit;font-size:13.5px;outline:none;transition:border-color .15s,box-shadow .15s}
+  .field input{min-width:240px}
   .field input::placeholder{color:var(--faint)}
-  .field input:focus,.field select:focus{border-color:var(--accent-bright)}
+  .field input:focus,.field select:focus{border-color:var(--accent-bright);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent-bright) 20%,transparent)}
   .field select{padding-right:32px;cursor:pointer;font-weight:500}
   .field.sel::after{content:"";position:absolute;right:13px;top:50%;width:6px;height:6px;
     border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:translateY(-70%) rotate(45deg);pointer-events:none}
+  
+  /* Toggle moderno estilo interruptor */
   .toggle{display:inline-flex;align-items:center;gap:8px;background:var(--surface);border:1px solid var(--border);
-    padding:9px 13px;border-radius:10px;font-size:13px;color:var(--muted);cursor:pointer;user-select:none;transition:border-color .15s}
+    padding:8px 12px;border-radius:10px;font-size:13px;color:var(--muted);cursor:pointer;user-select:none;transition:border-color .15s,color .15s}
   .toggle:hover{border-color:var(--border-2);color:var(--text)}
-  .toggle input{accent-color:var(--accent-bright);width:14px;height:14px}
+  .toggle input{appearance:none;width:30px;height:17px;background:var(--surface-2);border:1px solid var(--border-2);
+    border-radius:9px;position:relative;cursor:pointer;outline:none;transition:background .2s,border-color .2s;flex:none;margin:0}
+  .toggle input::after{content:"";position:absolute;top:1.5px;left:2px;width:12px;height:12px;background:var(--muted);
+    border-radius:50%;transition:transform .2s,background .2s}
+  .toggle input:checked{background:var(--accent-bright);border-color:var(--accent-bright)}
+  .toggle input:checked::after{transform:translateX(13px);background:#ffffff}
+
+  .genre-active-pill{display:inline-flex;align-items:center;gap:6px;background:color-mix(in srgb,var(--accent-bright) 12%,var(--surface));
+    border:1px solid color-mix(in srgb,var(--accent-bright) 30%,transparent);color:var(--accent-bright);
+    font-size:12px;font-weight:600;padding:4px 9px;border-radius:8px}
+  .genre-active-pill button{border:none;background:none;color:inherit;font-size:15px;line-height:1;cursor:pointer;padding:0;display:grid;place-items:center}
+
   .count{margin-left:auto;align-self:center;color:var(--faint);font-size:12.5px;font-variant-numeric:tabular-nums;font-weight:500}
 
   /* Estante editorial de nuevos lanzamientos */
@@ -143,12 +156,13 @@
     transition:border-color .15s,box-shadow .15s}
   .card:hover{border-color:var(--border-2)}
   .card.starred{border-color:color-mix(in srgb,var(--accent-bright) 40%,var(--border))}
-  .cover{width:72px;height:72px;border-radius:8px;object-fit:cover;background:var(--surface-2);
+  .cover{width:72px;height:72px;border-radius:8px;object-fit:cover;background:var(--surface-2);cursor:pointer;
     box-shadow:0 0 0 1px rgba(255,255,255,0.06) inset,0 3px 10px rgba(0,0,0,.3)}
   .cover.ph{display:grid;place-items:center;color:var(--faint)}
   .info{min-width:0}
   .gtitle{font-family:'Sora','Inter',system-ui,sans-serif;font-weight:600;font-size:15.5px;line-height:1.25;margin:0 0 4px;
-    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;cursor:pointer;transition:color .15s}
+  .gtitle:hover{color:var(--accent-bright)}
   .gmeta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   
   /* Nota / Metascore refinado */
@@ -169,21 +183,27 @@
   .new-tag.yesterday{background:var(--surface-2);color:var(--muted);border:1px solid var(--border)}
   .new-tag.recent{background:var(--surface-2);color:var(--muted);border:1px solid var(--border)}
 
+  /* Tags de género interactivos */
   .genre-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
-  .gtag{font-size:10.5px;color:var(--faint);background:var(--surface-2);
-    padding:1px 6px;border-radius:4px;font-weight:500}
+  .gtag{font-size:10.5px;color:var(--faint);background:var(--surface-2);border:1px solid var(--border);
+    padding:1px 7px;border-radius:5px;font-weight:500;cursor:pointer;transition:color .15s,border-color .15s,background .15s;
+    font-family:inherit;line-height:1.4}
+  .gtag:hover{color:var(--text);border-color:var(--border-2);background:var(--raise)}
+  .gtag.active{background:var(--accent-bright);color:var(--accent-ink);border-color:var(--accent-bright)}
 
   /* Bloque de precios */
   .pbox{display:flex;flex-direction:column;align-items:flex-end;text-align:right;gap:3px}
-  .chile{color:var(--faint);font-size:11px}
-  .chile b{color:var(--muted);font-weight:600}
   .bestrow{display:flex;align-items:center;gap:7px;justify-content:flex-end;flex-wrap:wrap}
+  .bestrow-left{display:flex;align-items:center;gap:6px}
   .flag{width:20px;height:14px;border-radius:2px;object-fit:cover;box-shadow:0 0 0 1px rgba(0,0,0,.15)}
   .bregion{font-size:12px;color:var(--muted);font-weight:500}
   .bprice{font-family:'Sora','Inter',system-ui,sans-serif;font-weight:800;font-size:17.5px;font-variant-numeric:tabular-nums;letter-spacing:-.3px}
   .tag{background:var(--save);color:var(--save-ink);font-family:'Sora','Inter',system-ui,sans-serif;font-weight:700;font-size:11px;
     padding:1px 6px;border-radius:5px;white-space:nowrap}
+  .pbox-sub{display:flex;align-items:center;gap:8px;justify-content:flex-end}
   .sub2{color:var(--muted);font-size:11px;font-variant-numeric:tabular-nums}
+  .chile{color:var(--faint);font-size:11px}
+  .chile b{color:var(--muted);font-weight:600}
   .ends{display:inline-flex;align-items:center;gap:4px;color:#ef4444;font-size:11px;font-weight:600}
   .ends svg{width:11px;height:11px}
   .na2{color:var(--faint);font-size:12.5px}
@@ -263,7 +283,8 @@
   .detail-title{margin:0 0 8px;font-family:'Sora','Inter',system-ui,sans-serif;font-size:22px;font-weight:800;letter-spacing:-.4px}
   .detail-score-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
   .detail-genre-tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px}
-  .detail-gtag{font-size:11px;color:var(--faint);background:var(--surface-2);padding:2px 8px;border-radius:5px;font-weight:500}
+  .detail-gtag{font-size:11px;color:var(--faint);background:var(--surface-2);border:1px solid var(--border);padding:2px 8px;border-radius:5px;font-weight:500;cursor:pointer;transition:color .15s,border-color .15s,background .15s}
+  .detail-gtag:hover{color:var(--text);border-color:var(--border-2);background:var(--raise)}
   .detail-best{font-size:13.5px;color:var(--muted);margin-bottom:12px}
   .detail-best b{color:var(--text)}
   .detail-best .bprice{color:var(--accent-bright);font-size:19px;font-family:'Sora','Inter',system-ui,sans-serif;font-weight:800}
@@ -281,10 +302,11 @@
   .chart-empty{padding:40px 0;text-align:center;color:var(--faint);font-size:12.5px}
   svg.price-chart{width:100%;display:block;overflow:visible}
 
+  /* Vista móvil refinada */
   @media(max-width:600px){
     .wrap{padding:0 12px}
-    .head{padding:12px 0 8px;gap:10px}
-    .brand h1{font-size:16.5px;letter-spacing:-.3px}
+    .head{padding:12px 0 8px;gap:8px}
+    .brand h1{font-size:16px;letter-spacing:-.3px}
     .brand p{display:none}
     .stat{display:none}
     .headbtns{margin-left:auto;gap:6px}
@@ -296,37 +318,46 @@
 
     .controls{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 0 10px}
     .controls .field:first-child{grid-column:1 / -1}
-    .controls .field input{min-width:0;width:100%;padding:8px 11px;font-size:13px}
-    .controls .field select{width:100%;padding:8px 24px 8px 9px;font-size:12.5px}
-    .toggle{grid-column:1 / 2;padding:8px 10px;font-size:12px;white-space:nowrap}
+    .controls .field input{min-width:0;width:100%;padding:9px 12px;font-size:13px}
+    .controls .field select{width:100%;padding:9px 24px 9px 10px;font-size:12.5px}
+    .toggle{grid-column:1 / 2;padding:7px 10px;font-size:12px}
     .count{grid-column:2 / 3;justify-self:end;align-self:center;font-size:12px}
+    .genre-active-pill{grid-column:1 / -1;justify-self:start;margin-top:2px}
 
     .new-shelf-wrap{padding:10px 12px;margin-bottom:14px;border-radius:12px}
-    .shelf-card{flex:0 0 110px;padding:6px}
+    .shelf-card{flex:0 0 112px;padding:6px}
     .shelf-title{font-size:11px}
     .shelf-price{font-size:12px}
 
-    .card{grid-template-columns:64px 1fr;gap:11px;padding:11px;border-radius:12px}
-    .cover{width:64px;height:64px;border-radius:7px}
+    /* Tarjetas de juego en móvil: elegantes, compactas y fluidas */
+    .card{grid-template-columns:68px 1fr;gap:8px 11px;padding:11px;border-radius:12px}
+    .cover{width:68px;height:68px;border-radius:8px}
+    .info{grid-column:2;min-width:0}
     .gtitle{font-size:14.5px;margin:0 0 3px}
-    .gmeta{gap:5px}
+    .gmeta{gap:5px;margin-bottom:3px}
     .score{min-width:28px;height:24px;font-size:12.5px;padding:0 4px;border-radius:5px}
     .slabel{display:none}
+    .genre-tags{gap:3px;margin-top:2px}
+    .gtag{font-size:10px;padding:1px 5px}
 
     .pbox{grid-column:1 / -1;width:100%;background:var(--surface-2);border:1px solid var(--border);
-      border-radius:9px;padding:8px 10px;display:flex;flex-direction:column;align-items:stretch;text-align:left;gap:3px}
-    .pbox .bestrow{justify-content:space-between;width:100%;gap:6px;order:1}
-    .pbox .bestrow .bprice{font-size:17px}
-    .pbox .sub2{font-size:11px;order:2;display:flex;justify-content:space-between}
-    .pbox .chile{font-size:10.5px;order:3;border-top:1px dashed var(--border);padding-top:3px;margin-top:2px;display:flex;justify-content:space-between}
-    .pbox .ends{order:4;font-size:10.5px}
+      border-radius:9px;padding:8px 10px;display:flex;flex-direction:column;align-items:stretch;text-align:left;gap:4px}
+    .pbox .bestrow{display:flex;align-items:center;justify-content:space-between;width:100%;gap:6px}
+    .pbox .bestrow-left{display:flex;align-items:center;gap:6px;min-width:0}
+    .pbox .bestrow-left .bregion{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px}
+    .pbox .bprice{font-size:17.5px}
+    .pbox .pbox-sub{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--muted);
+      border-top:1px dashed var(--border);padding-top:3px;margin-top:1px}
+    .pbox .chile{font-size:11px}
+    .pbox .ends{font-size:10.5px}
 
-    .actions{grid-column:1 / -1;display:flex;flex-direction:column;gap:6px;align-items:stretch;padding-top:2px}
-    .expand{width:100%;justify-content:center;padding:7px 0;font-size:12px;border-radius:7px;background:color-mix(in srgb,var(--accent-bright) 8%,transparent)}
-    .act-group{margin-left:0;width:100%;display:flex;gap:5px}
-    .act-btn{flex:1;min-width:0;padding:7px 5px;font-size:11px;justify-content:center;text-align:center;border-radius:7px;white-space:nowrap}
-    .act-btn.star-btn{flex:0 0 36px;padding:7px 0}
+    .actions{grid-column:1 / -1;display:flex;align-items:center;justify-content:space-between;gap:6px;padding-top:2px}
+    .expand{padding:6px 10px;font-size:11.5px;border-radius:7px;background:color-mix(in srgb,var(--accent-bright) 8%,transparent)}
+    .act-group{margin-left:auto;display:flex;gap:4px}
+    .act-btn{padding:6px 8px;font-size:11px;border-radius:7px}
+    .act-btn.star-btn{padding:6px 8px}
     .act-btn.star-btn span{display:none}
+    .act-btn.dl-btn{display:none}
 
     .rrow{display:grid;grid-template-columns:auto 1fr auto;grid-template-areas:"flag name clp" "space local link";gap:2px 8px;padding:7px 9px;font-size:12px}
     .rrow .flag{grid-area:flag;margin-top:2px}
@@ -392,6 +423,10 @@
     </select></div>
     <div class="field sel"><select id="genre"><option value="">Todos los géneros</option></select></div>
     <label class="toggle"><input type="checkbox" id="rated"> Solo con nota</label>
+    <div class="genre-active-pill" id="genre-active-pill" hidden>
+      <span id="genre-active-name"></span>
+      <button type="button" id="genre-clear-btn" title="Quitar filtro de género">×</button>
+    </div>
     <span class="count" id="count"></span>
   </div>
 </div>
@@ -410,6 +445,7 @@
         <button class="new-shelf-link" id="new-shelf-btn">Ver todos los estrenos <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
       </div>
       <div class="new-shelf-scroll" id="new-shelf-scroll"></div>
+    </div>
     <div class="grid" id="grid"></div>
     <div class="pager" id="pager"></div>
   </main>
@@ -572,7 +608,31 @@ function loadURL(){
   if($('#sort'))$('#sort').value=p.get('sort')||'new';
   if($('#rated'))$('#rated').checked=p.get('rated')==='1';
   if($('#genre')&&p.get('genre'))$('#genre').value=p.get('genre')||'';
+  updateGenrePill();
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.mode===mode));
+}
+function updateGenrePill(){
+  const sel=$('#genre');const pill=$('#genre-active-pill');const nameEl=$('#genre-active-name');
+  if(!sel||!pill)return;
+  if(sel.value){
+    if(nameEl)nameEl.textContent=sel.value;
+    pill.hidden=false;
+  }else{
+    pill.hidden=true;
+  }
+}
+function filterByGenre(name){
+  const sel=$('#genre');
+  if(sel){
+    sel.value=name;
+    updateGenrePill();
+    pushURL();
+    render();
+    if($('#detail-view').classList.contains('show')){
+      showMain();
+    }
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
 }
 window.addEventListener('popstate',()=>{if(GAMES.length){loadURL();render();}});
 
@@ -660,7 +720,14 @@ async function boot(){
     if(mode==='ofertas')$('#sort').value='disc';
     pushURL();render();
   }));
-  ['#q','#sort','#rated','#genre'].forEach(s=>$(s)?.addEventListener('input',()=>{pushURL();render();}));
+  ['#q','#sort','#rated','#genre'].forEach(s=>$(s)?.addEventListener('input',()=>{
+    if(s==='#genre')updateGenrePill();
+    pushURL();render();
+  }));
+  $('#genre-clear-btn')?.addEventListener('click',()=>{
+    const sel=$('#genre');
+    if(sel){sel.value='';updateGenrePill();pushURL();render();}
+  });
 
   renderNewShelf();
   loadURL();
@@ -684,10 +751,13 @@ function render(){
     return true;
   });
   ROWS.sort((a,b)=>{switch(sort){
+    case 'score':
     case 'mc':return(b.mc??-1)-(a.mc??-1);
     case 'clp':{const av=(bestOf(a)||{}).clp??Infinity,bv=(bestOf(b)||{}).clp??Infinity;return av-bv;}
+    case 'diff':
     case 'save':return saveOf(b)-saveOf(a);
     case 'disc':return b._disc-a._disc;
+    case 'alpha':
     case 'name':return a.t.localeCompare(b.t);
     case 'new':{
       if(a._isRel && b._isRel) return b.d.localeCompare(a.d);
@@ -704,6 +774,12 @@ function render(){
       if(a._isPre && !b._isPre) return -1;
       if(!a._isPre && b._isPre) return 1;
       return b._rel.localeCompare(a._rel);
+    }
+    case 'pop':
+    default:{
+      const aPop=(a.mc??50)+(a._disc||0)+(a._list.length*2);
+      const bPop=(b.mc??50)+(b._disc||0)+(b._list.length*2);
+      return bPop-aPop;
     }
   }});
   $('#count').textContent=ROWS.length.toLocaleString('es-CL')+' juegos';
@@ -790,14 +866,22 @@ function card(g){
   const scoreEl=g.mc!=null
     ?`<span class="score" style="background:${scoreColor(g.mc)}">${g.mc}</span><span class="slabel">IGDB</span>`
     :`<span class="score na">N/A</span>`;
-  const genreTags=(Array.isArray(g.g)&&g.g.length)?`<div class="genre-tags">${g.g.slice(0,3).map(x=>`<span class="gtag">${x}</span>`).join('')}</div>`:'';
+  const genreTags=(Array.isArray(g.g)&&g.g.length)?`<div class="genre-tags">${g.g.slice(0,3).map(x=>`<button type="button" class="gtag" data-genre="${x}">${x}</button>`).join('')}</div>`:'';
   let pbox;
   if(best){
     const endTxt=(best.disc&&best.end)?`<div class="ends">${CLOCK}Termina ${fmtDate(best.end)}</div>`:'';
     pbox=`<div class="pbox">
-      <div class="chile">Chile <b>${fmtCLP(g._cl)}</b></div>
-      <div class="bestrow">${flagImg(best.code)}<span class="bregion">${REG[best.code].name||best.code}</span><span class="bprice">${fmtCLP(best.clp)}</span>${best.disc?`<span class="tag">-${best.disc}%</span>`:(save!=null?`<span class="tag">-${save}%</span>`:'')}</div>
-      <div class="sub2">${fmtLocal(best.local,REG[best.code].cur)}${save!=null?` · ahorras ${save}%`:''}</div>
+      <div class="bestrow">
+        <div class="bestrow-left">
+          ${flagImg(best.code)}<span class="bregion">${REG[best.code].name||best.code}</span>
+          ${best.disc?`<span class="tag">-${best.disc}%</span>`:(save!=null?`<span class="tag">-${save}%</span>`:'')}
+        </div>
+        <span class="bprice">${fmtCLP(best.clp)}</span>
+      </div>
+      <div class="pbox-sub">
+        <span class="sub2">${fmtLocal(best.local,REG[best.code].cur)}${save!=null?` · ahorras ${save}%`:''}</span>
+        ${g._cl?`<span class="chile">Chile <b>${fmtCLP(g._cl)}</b></span>`:''}
+      </div>
       ${endTxt}</div>`;
   }else pbox=`<div class="pbox"><div class="na2">Sin precio</div></div>`;
   const regHTML=g._list.map(it=>`<div class="rrow">${flagImg(it.code)}<span class="rname">${REG[it.code].name||it.code}${(it.disc&&it.end)?`<span class="rend"> · oferta hasta ${fmtDate(it.end)}</span>`:''}</span><span class="rlocal">${fmtLocal(it.local,REG[it.code].cur)}</span><span class="rclp">${fmtCLP(it.clp)}</span>${it.disc?`<span class="rdisc">-${it.disc}%</span>`:''}<a href="https://www.microsoft.com/store/productId/${g.id}?market=${it.code}" target="_blank" rel="noopener">Ver</a></div>`).join('');
@@ -829,6 +913,20 @@ function card(g){
   el.querySelector('.detail-btn').addEventListener('click',()=>{
     history.pushState({},'',location.pathname+location.search+'#game/'+g.id);
     showDetail(g);
+  });
+  el.querySelector('.cover').addEventListener('click',()=>{
+    history.pushState({},'',location.pathname+location.search+'#game/'+g.id);
+    showDetail(g);
+  });
+  el.querySelector('.gtitle').addEventListener('click',()=>{
+    history.pushState({},'',location.pathname+location.search+'#game/'+g.id);
+    showDetail(g);
+  });
+  el.querySelectorAll('.gtag').forEach(btn=>{
+    btn.addEventListener('click',e=>{
+      e.stopPropagation();
+      filterByGenre(btn.dataset.genre);
+    });
   });
   const dl=el.querySelector('.dl-btn');
   if(dl)dl.addEventListener('click',async e=>{
@@ -888,7 +986,7 @@ function renderDetail(g){
   const scoreEl=g.mc!=null
     ?`<span class="score" style="background:${scoreColor(g.mc)}">${g.mc}</span><span class="slabel">IGDB</span>`
     :`<span class="score na">N/A</span>`;
-  const genreTags=(Array.isArray(g.g)&&g.g.length)?g.g.map(x=>`<span class="detail-gtag">${x}</span>`).join(''):'';
+  const genreTags=(Array.isArray(g.g)&&g.g.length)?g.g.map(x=>`<button type="button" class="detail-gtag" data-genre="${x}">${x}</button>`).join(''):'';
   const coverEl=g.img?`<img class="detail-cover" src="${g.img}?w=600&h=600&format=jpg&q=90" alt="${g.t}">`:`<div class="detail-cover-ph">?</div>`;
   const regHTML=g._list.map(it=>{
     const r=REG[it.code];const isBest=best&&it.clp===best.clp;
@@ -952,6 +1050,11 @@ function renderDetail(g){
     try{const r=await fetch(url);if(!r.ok)throw 0;const b=await r.blob();const ou=URL.createObjectURL(b);const a=document.createElement('a');a.href=ou;a.download=g.t.replace(/[^a-z0-9\-_()\[\] ]/gi,'_').trim()+'.jpg';document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(()=>URL.revokeObjectURL(ou),10000);}
     catch(err){window.open(url,'_blank','noopener');}
     finally{dd.innerHTML=orig;dd.disabled=false;}
+  });
+  $('#detail-content').querySelectorAll('.detail-gtag').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      filterByGenre(btn.dataset.genre);
+    });
   });
   if(hasHist){
     renderChart(g.id);
