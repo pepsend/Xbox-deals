@@ -1,11 +1,11 @@
-// Service Worker — Xbox Deals (v8)
-// Estrategia: network-first para HTML y datos, cache-first para assets estáticos
-const CACHE = 'xbox-deals-v8';
+// Service Worker — Xbox Deals (v9)
+// Estrategia de carga instantánea optimizada para iOS Safari y escritorio
+const CACHE = 'xbox-deals-v9';
 const STATIC = ['./manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
   self.skipWaiting();
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(STATIC)));
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(STATIC)).catch(() => {}));
 });
 
 self.addEventListener('activate', e => {
@@ -19,12 +19,15 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
 
-  // Navegación / Documento HTML -> Network-first (para que siempre se cargue la versión actualizada)
+  // Navegación / Documento HTML -> Network-first con fallback inmediato a cache
   if (e.request.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname.endsWith('/')) {
     e.respondWith(
       fetch(e.request)
         .then(r => {
-          if (r.ok) { const clone = r.clone(); caches.open(CACHE).then(c => c.put(e.request, clone)); }
+          if (r.ok) {
+            const clone = r.clone();
+            caches.open(CACHE).then(c => c.put(e.request, clone)).catch(() => {});
+          }
           return r;
         })
         .catch(() => caches.match(e.request).then(cached => cached || caches.match('./index.html')))
@@ -32,15 +35,41 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // Datos JSON -> Network-first (para tener precios siempre actualizados)
-  if (url.pathname.includes('/data/')) {
+  // history.json -> Bypass cache de Service Worker para preservar cuota en iPhone WebKit
+  if (url.pathname.endsWith('/history.json')) {
+    return;
+  }
+
+  // meta.json -> Network-first (2KB, determina si hay actualización)
+  if (url.pathname.endsWith('/meta.json')) {
     e.respondWith(
       fetch(e.request)
         .then(r => {
-          if (r.ok) { const clone = r.clone(); caches.open(CACHE).then(c => c.put(e.request, clone)); }
+          if (r.ok) {
+            const clone = r.clone();
+            caches.open(CACHE).then(c => c.put(e.request, clone)).catch(() => {});
+          }
           return r;
         })
-        .catch(() => caches.match(e.request))
+        .catch(() => caches.match(e.request).then(cached => cached || new Response('{}', { headers: { 'content-type': 'application/json' } })))
+    );
+    return;
+  }
+
+  // games.json y addons.json -> Stale-while-revalidate para arranque instantáneo
+  if (url.pathname.includes('/data/')) {
+    e.respondWith(
+      caches.match(e.request).then(cached => {
+        const fetchPromise = fetch(e.request).then(r => {
+          if (r.ok) {
+            const clone = r.clone();
+            caches.open(CACHE).then(c => c.put(e.request, clone)).catch(() => {});
+          }
+          return r;
+        }).catch(() => cached || new Response('[]', { headers: { 'content-type': 'application/json' } }));
+
+        return cached || fetchPromise;
+      })
     );
     return;
   }
@@ -48,12 +77,15 @@ self.addEventListener('fetch', e => {
   // Externos (imágenes Microsoft Store, Flags, Fonts) -> Network directo
   if (!url.origin.includes(self.location.origin)) return;
 
-  // Assets estáticos propios (iconos, manifest) -> Cache-first
+  // Assets estáticos propios -> Cache-first
   e.respondWith(
     caches.match(e.request).then(cached => {
       if (cached) return cached;
       return fetch(e.request).then(r => {
-        if (r.ok) { const clone = r.clone(); caches.open(CACHE).then(c => c.put(e.request, clone)); }
+        if (r.ok) {
+          const clone = r.clone();
+          caches.open(CACHE).then(c => c.put(e.request, clone)).catch(() => {});
+        }
         return r;
       });
     })

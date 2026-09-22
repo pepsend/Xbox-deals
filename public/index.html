@@ -236,7 +236,14 @@
   .rrow a{color:var(--accent-bright);text-decoration:none;font-size:11.5px;font-weight:600;white-space:nowrap}
   .rrow a:hover{text-decoration:underline}
 
-  .state{padding:80px 16px;text-align:center;color:var(--muted)}
+  .state{padding:24px 0 60px;text-align:center;color:var(--muted)}
+  .skeleton-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:var(--gap);padding:12px 0}
+  .sk-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;height:124px;position:relative;overflow:hidden}
+  .sk-card::after{content:'';position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,0.05),transparent);animation:shimmer 1.4s infinite}
+  @keyframes shimmer{100%{transform:translateX(100%)}}
+  .chart-loading{padding:42px 16px;text-align:center;color:var(--faint);font-size:13px}
+  .retry-btn{margin-top:14px;display:inline-block;padding:9px 20px;background:var(--accent-bright);color:var(--accent-ink);border:none;border-radius:8px;font-family:'Sora','Inter',system-ui,sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:transform .1s,opacity .15s}
+  .retry-btn:hover{opacity:.9;transform:scale(1.02)}
   .spinner{width:26px;height:26px;border:2.5px solid var(--border);border-top-color:var(--accent-bright);
     border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 14px}
   @keyframes spin{to{transform:rotate(360deg)}}
@@ -512,7 +519,7 @@
 
 <script>
 // ============= Estado global =============
-let GAMES=[], ADDONS=[], META=null, REGIONS=[], REG={}, ROWS=[], HISTORY={};
+let GAMES=[], ADDONS=[], META=null, REGIONS=[], REG={}, ROWS=[], HISTORY=null;
 let page=1, PER=40, mode='all';
 let WATCHLIST=new Set(), PRICE_SNAP={};
 let cmpGame=null, cmpAsc=true;
@@ -697,89 +704,302 @@ function showMain(){
 })();
 window.addEventListener('hashchange',()=>{if(GAMES.length)checkHash();});
 
-// ============= Boot =============
-async function boot(){
-  loadWL();updateWLBadge();
-  try{
-    const safeJson=r=>(r&&r.ok)?r.json():null;
-    const [g,m,h,add]=await Promise.all([
-      fetch('./data/games.json').then(r=>r.json()),
-      fetch('./data/meta.json').then(r=>r.json()),
-      fetch('./data/history.json').then(safeJson).catch(()=>null),
-      fetch('./data/addons.json').then(safeJson).catch(()=>[])
-    ]);
-    GAMES=g;META=m;REGIONS=m.regions;REGIONS.forEach(r=>REG[r.code]=r);HISTORY=h||{};
-    ADDONS=add||[];
-  }catch(e){
-    console.error('Boot error:',e);
-    $('#state').innerHTML='<div>No pude cargar los datos todavía. Si recién desplegaste, espera a que el robot corra por primera vez.</div>';
-    return;
-  }
+// ============= Cache persistente (IndexedDB) & Carga instantánea =============
+const DB_NAME = 'xbox-deals-cache-v1';
+const DB_STORE = 'store';
 
-  const refCode=(REGIONS.find(r=>r.ref)||REGIONS[0]).code;
-  function processCatalogItem(g){
-    const list=[];let best=null,bestOffer=null;
-    for(const R of REGIONS){
-      const p=g.r[R.code];if(!p)continue;
-      const end=p[3]||null;
-      // Las ofertas vencidas según su fecha fin ya no son activas
-      const isExpired=Boolean(end && end < TODAY_STR);
-      const disc=isExpired?0:(p[2]||0);
-      const it={code:R.code,local:p[0],clp:p[1],disc,end:isExpired?null:end};
-      list.push(it);
-      if(!best||it.clp<best.clp)best=it;
-      if(it.disc>0&&(!bestOffer||it.clp<bestOffer.clp))bestOffer=it;
+function idbOpen() {
+  return new Promise(resolve => {
+    if (!window.indexedDB) return resolve(null);
+    try {
+      const req = indexedDB.open(DB_NAME, 1);
+      req.onupgradeneeded = e => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains(DB_STORE)) {
+          db.createObjectStore(DB_STORE);
+        }
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => resolve(null);
+    } catch {
+      resolve(null);
     }
-    list.sort((a,b)=>a.clp-b.clp);
-    g._list=list;g._best=best;g._bestOffer=bestOffer;
-    g._cl=g.r[refCode]?g.r[refCode][1]:null;
-    g._disc=list.reduce((mx,x)=>Math.max(mx,x.disc||0),0);
-    g._isRel=Boolean(g.d && g.d <= TODAY_STR);
-    g._isPre=Boolean(g.d && g.d > TODAY_STR);
-    g._rel=g.d||(g.y?(g.y+'-01-01'):'0000-00-00');
-  }
-
-  for(const g of GAMES) processCatalogItem(g);
-  for(const a of ADDONS) processCatalogItem(a);
-
-  const dlcCount = META.dlcCount || ADDONS.filter(x=>x.kind==='dlc').length;
-  const curCount = META.currencyCount || ADDONS.filter(x=>x.kind==='cur').length;
-  const dlcBadge = $('#dlc-badge');
-  if(dlcBadge && dlcCount){ dlcBadge.textContent = dlcCount.toLocaleString('es-CL'); dlcBadge.style.display = ''; }
-  const curBadge = $('#cur-badge');
-  if(curBadge && curCount){ curBadge.textContent = curCount.toLocaleString('es-CL'); curBadge.style.display = ''; }
-
-  $('#state').hidden=true;$('#controls').hidden=false;$('#tabs').hidden=false;
-  $('#stat').innerHTML='Actualizado '+(META.updated?new Date(META.updated).toLocaleDateString('es-CL'):'-')+'<br><b>'+META.count.toLocaleString('es-CL')+'</b> juegos · <b>'+(dlcCount+curCount).toLocaleString('es-CL')+'</b> DLCs y monedas · <b>'+META.withRating.toLocaleString('es-CL')+'</b> con nota';
-  $('#foot').innerHTML='<b>Datos:</b> tienda oficial de Xbox de cada región, convertidos a CLP con el tipo de cambio del día. Notas de IGDB.';
-
-  // Género dropdown
-  const genres=new Set();
-  for(const g of GAMES){if(Array.isArray(g.g))g.g.forEach(x=>genres.add(x));}
-  if(genres.size){
-    const sel=$('#genre');
-    [...genres].sort().forEach(name=>{const o=document.createElement('option');o.value=name;o.textContent=name;sel.appendChild(o);});
-  }
-
-  document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
-    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
-    t.classList.add('active');mode=t.dataset.mode;
-    if(mode==='ofertas')$('#sort').value='disc';
-    pushURL();render();
-  }));
-  ['#q','#sort','#rated','#genre'].forEach(s=>$(s)?.addEventListener('input',()=>{
-    if(s==='#genre')updateGenrePill();
-    pushURL();render();
-  }));
-  $('#genre-clear-btn')?.addEventListener('click',()=>{
-    const sel=$('#genre');
-    if(sel){sel.value='';updateGenrePill();pushURL();render();}
   });
+}
+
+async function idbGet(key) {
+  try {
+    const db = await idbOpen();
+    if (!db) return null;
+    return new Promise(resolve => {
+      const tx = db.transaction(DB_STORE, 'readonly');
+      const req = tx.objectStore(DB_STORE).get(key);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => resolve(null);
+    });
+  } catch {
+    return null;
+  }
+}
+
+async function idbSet(key, val) {
+  try {
+    const db = await idbOpen();
+    if (!db) return false;
+    return new Promise(resolve => {
+      const tx = db.transaction(DB_STORE, 'readwrite');
+      tx.objectStore(DB_STORE).put(val, key);
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => resolve(false);
+    });
+  } catch {
+    return false;
+  }
+}
+
+async function fetchWithRetry(url, options = {}, retries = 3, delay = 400) {
+  for (let i = 1; i <= retries; i++) {
+    try {
+      const res = await fetch(url, options);
+      if (res.ok) return res;
+      throw new Error(`HTTP ${res.status}`);
+    } catch (err) {
+      if (i === retries) throw err;
+      await new Promise(r => setTimeout(r, delay * i));
+    }
+  }
+}
+
+let historyPromise = null;
+function loadHistory() {
+  if (HISTORY) return Promise.resolve(HISTORY);
+  if (historyPromise) return historyPromise;
+  historyPromise = fetchWithRetry('./data/history.json', {}, 2, 500)
+    .then(r => r.json())
+    .then(h => {
+      HISTORY = h || {};
+      return HISTORY;
+    })
+    .catch(err => {
+      console.warn('Historial no disponible:', err);
+      HISTORY = {};
+      return HISTORY;
+    });
+  return historyPromise;
+}
+
+function scheduleHistoryPreload() {
+  const run = () => {
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(() => loadHistory(), { timeout: 5000 });
+    } else {
+      setTimeout(() => loadHistory(), 2500);
+    }
+  };
+  if (document.readyState === 'complete') run();
+  else window.addEventListener('load', run, { once: true });
+}
+
+function processCatalogItem(g) {
+  const refCode = (REGIONS.find(r => r.ref) || REGIONS[0] || { code: 'CL' }).code;
+  const list = [];
+  let best = null, bestOffer = null;
+  for (const R of REGIONS) {
+    const p = g.r[R.code];
+    if (!p) continue;
+    const end = p[3] || null;
+    const isExpired = Boolean(end && end < TODAY_STR);
+    const disc = isExpired ? 0 : (p[2] || 0);
+    const it = { code: R.code, local: p[0], clp: p[1], disc, end: isExpired ? null : end };
+    list.push(it);
+    if (!best || it.clp < best.clp) best = it;
+    if (it.disc > 0 && (!bestOffer || it.clp < bestOffer.clp)) bestOffer = it;
+  }
+  list.sort((a, b) => a.clp - b.clp);
+  g._list = list;
+  g._best = best;
+  g._bestOffer = bestOffer;
+  g._cl = g.r[refCode] ? g.r[refCode][1] : null;
+  g._disc = list.reduce((mx, x) => Math.max(mx, x.disc || 0), 0);
+  g._isRel = Boolean(g.d && g.d <= TODAY_STR);
+  g._isPre = Boolean(g.d && g.d > TODAY_STR);
+  g._rel = g.d || (g.y ? (g.y + '-01-01') : '0000-00-00');
+}
+
+function updateBadgesAndMeta() {
+  const dlcCount = META?.dlcCount || ADDONS.filter(x => x.kind === 'dlc').length;
+  const curCount = META?.currencyCount || ADDONS.filter(x => x.kind === 'cur').length;
+  const dlcBadge = $('#dlc-badge');
+  if (dlcBadge && dlcCount) { dlcBadge.textContent = dlcCount.toLocaleString('es-CL'); dlcBadge.style.display = ''; }
+  const curBadge = $('#cur-badge');
+  if (curBadge && curCount) { curBadge.textContent = curCount.toLocaleString('es-CL'); curBadge.style.display = ''; }
+
+  const stat = $('#stat');
+  if (stat && META) {
+    stat.innerHTML = 'Actualizado ' + (META.updated ? new Date(META.updated).toLocaleDateString('es-CL') : '-') + '<br><b>' + (META.count || GAMES.length).toLocaleString('es-CL') + '</b> juegos · <b>' + (dlcCount + curCount).toLocaleString('es-CL') + '</b> DLCs y monedas · <b>' + (META.withRating || 0).toLocaleString('es-CL') + '</b> con nota';
+  }
+  const foot = $('#foot');
+  if (foot) {
+    foot.innerHTML = '<b>Datos:</b> tienda oficial de Xbox de cada región, convertidos a CLP con el tipo de cambio del día. Notas de IGDB.';
+  }
+}
+
+function setupGenreOptions() {
+  const genres = new Set();
+  for (const g of GAMES) {
+    if (Array.isArray(g.g)) g.g.forEach(x => genres.add(x));
+  }
+  if (genres.size) {
+    const sel = $('#genre');
+    if (sel && sel.options.length <= 1) {
+      sel.innerHTML = '<option value="">Todos los géneros</option>';
+      [...genres].sort().forEach(name => {
+        const o = document.createElement('option');
+        o.value = name;
+        o.textContent = name;
+        sel.appendChild(o);
+      });
+    }
+  }
+}
+
+let uiListenersBound = false;
+function bindUIListeners() {
+  if (uiListenersBound) return;
+  uiListenersBound = true;
+
+  document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    mode = t.dataset.mode;
+    if (mode === 'ofertas') $('#sort').value = 'disc';
+    pushURL();
+    render();
+  }));
+
+  ['#q', '#sort', '#rated', '#genre'].forEach(s => $(s)?.addEventListener('input', () => {
+    if (s === '#genre') updateGenrePill();
+    pushURL();
+    render();
+  }));
+
+  $('#genre-clear-btn')?.addEventListener('click', () => {
+    const sel = $('#genre');
+    if (sel) { sel.value = ''; updateGenrePill(); pushURL(); render(); }
+  });
+}
+
+function applyCatalog(gamesData, metaData, addonsData = []) {
+  GAMES = gamesData;
+  META = metaData;
+  REGIONS = metaData.regions || [];
+  REG = {};
+  REGIONS.forEach(r => REG[r.code] = r);
+  ADDONS = addonsData || [];
+
+  for (const g of GAMES) processCatalogItem(g);
+  for (const a of ADDONS) processCatalogItem(a);
+
+  updateBadgesAndMeta();
+  setupGenreOptions();
+
+  $('#state').hidden = true;
+  $('#controls').hidden = false;
+  $('#tabs').hidden = false;
 
   renderNewShelf();
   loadURL();
   checkAlerts();
-  if(!checkHash())render();
+  if (!checkHash()) render();
+}
+
+// ============= Boot =============
+async function boot() {
+  loadWL();
+  updateWLBadge();
+  bindUIListeners();
+
+  let renderedFromCache = false;
+
+  // 1. Carga ultra rápida instantánea desde IndexedDB (<30ms)
+  try {
+    const [cachedMeta, cachedGames, cachedAddons] = await Promise.all([
+      idbGet('meta'),
+      idbGet('games'),
+      idbGet('addons')
+    ]);
+
+    if (cachedMeta && cachedGames && cachedGames.length) {
+      applyCatalog(cachedGames, cachedMeta, cachedAddons || []);
+      renderedFromCache = true;
+      scheduleHistoryPreload();
+    }
+  } catch (err) {
+    console.warn('IDB cache read error:', err);
+  }
+
+  // 2. Si no había caché (primera visita), mostrar esqueleto elegante
+  if (!renderedFromCache) {
+    const state = $('#state');
+    if (state) {
+      state.hidden = false;
+      state.innerHTML = `
+        <div class="skeleton-grid">
+          ${Array(8).fill('<div class="sk-card"></div>').join('')}
+        </div>
+        <div style="margin-top:18px;color:var(--muted);font-size:13px"><span class="spin"></span> Cargando catálogo por primera vez...</div>
+      `;
+    }
+  }
+
+  // 3. Sincronización en red (en segundo plano si ya cargamos caché, o inicial si es primera visita)
+  try {
+    const metaRes = await fetchWithRetry('./data/meta.json?_t=' + Date.now(), {}, 3, 300);
+    const freshMeta = await metaRes.json();
+
+    const needGames = !renderedFromCache || (freshMeta.updated && freshMeta.updated !== META?.updated);
+
+    if (needGames) {
+      const [gamesRes, addonsRes] = await Promise.all([
+        fetchWithRetry('./data/games.json', {}, 3, 400).then(r => r.json()),
+        fetchWithRetry('./data/addons.json', {}, 2, 400).then(r => r.json()).catch(() => (ADDONS || []))
+      ]);
+
+      idbSet('meta', freshMeta);
+      idbSet('games', gamesRes);
+      idbSet('addons', addonsRes);
+
+      applyCatalog(gamesRes, freshMeta, addonsRes);
+      scheduleHistoryPreload();
+    } else {
+      if (!ADDONS.length) {
+        fetchWithRetry('./data/addons.json', {}, 2, 400)
+          .then(r => r.json())
+          .then(addonsRes => {
+            ADDONS = addonsRes || [];
+            idbSet('addons', ADDONS);
+            for (const a of ADDONS) processCatalogItem(a);
+            updateBadgesAndMeta();
+          })
+          .catch(() => {});
+      }
+    }
+  } catch (err) {
+    console.error('Boot network error:', err);
+    if (!renderedFromCache) {
+      const state = $('#state');
+      if (state) {
+        state.hidden = false;
+        state.innerHTML = `
+          <div style="padding:40px 16px;text-align:center">
+            <div style="color:var(--text);font-weight:700;font-size:15px;margin-bottom:8px">No se pudo cargar el catálogo</div>
+            <div style="color:var(--muted);font-size:13px;max-width:380px;margin:0 auto 16px">Verifica tu conexión a internet e inténtalo de nuevo.</div>
+            <button type="button" class="retry-btn" onclick="boot()">Reintentar</button>
+          </div>
+        `;
+      }
+    }
+  }
 }
 
 // ============= Render lista =============
@@ -1057,7 +1277,7 @@ function closeCmp(){$('#modal-overlay').classList.remove('open');document.body.s
 
 // ============= Vista detalle (#3) =============
 function renderDetail(g){
-  const hist=HISTORY[g.id]||{};
+  const hist=(HISTORY && HISTORY[g.id])||{};
   const hasHist=Object.keys(hist).length>0;
   const best=g._best;
   const save=(g._cl&&best&&best.clp<g._cl)?Math.round((1-best.clp/g._cl)*100):null;
@@ -1137,17 +1357,20 @@ function renderDetail(g){
   </div>
   <div class="detail-section">
     <p class="detail-section-title">Historial de precios</p>
-    ${hasHist?`<div class="chart-wrap">
-      <div class="chart-controls">
-        <select class="chart-rgsel" id="chart-rgsel">${chartRegOpts}</select>
-        <div class="chart-period">
-          <button class="cper" data-d="30">30d</button>
-          <button class="cper active" data-d="90">90d</button>
-          <button class="cper" data-d="0">Todo</button>
-        </div>
-      </div>
-      <div id="chart-container"></div>
-    </div>`:`<div class="chart-empty">El historial de precios estará disponible tras la próxima sincronización.</div>`}
+    <div class="chart-wrap" id="chart-wrap-el">
+      ${!HISTORY ? `<div class="chart-loading"><span class="spin"></span> Cargando historial de precios...</div>` :
+        (hasHist ? `
+          <div class="chart-controls">
+            <select class="chart-rgsel" id="chart-rgsel">${chartRegOpts}</select>
+            <div class="chart-period">
+              <button class="cper" data-d="30">30d</button>
+              <button class="cper active" data-d="90">90d</button>
+              <button class="cper" data-d="0">Todo</button>
+            </div>
+          </div>
+          <div id="chart-container"></div>
+        ` : `<div class="chart-empty">El historial de precios estará disponible tras la próxima sincronización.</div>`)}
+    </div>
   </div>
   <div class="detail-section">
     <p class="detail-section-title">Precios por región</p>
@@ -1213,14 +1436,60 @@ function renderDetail(g){
       filterByGenre(btn.dataset.genre);
     });
   });
-  if(hasHist){
+  function setupChartUI(gameHist) {
+    const el = $('#chart-wrap-el');
+    if (!el) return;
+    const has = Object.keys(gameHist).length > 0;
+    if (!has) {
+      el.innerHTML = '<div class="chart-empty">El historial de precios estará disponible tras la próxima sincronización.</div>';
+      return;
+    }
+    const opts = Object.keys(gameHist).map(code => {
+      const r = REG[code] || { name: code };
+      return `<option value="${code}"${code === 'CL' ? ' selected' : ''}>${r.name || code}</option>`;
+    }).join('');
+    chartRegion = gameHist['CL'] ? 'CL' : (Object.keys(gameHist)[0] || '');
+    chartPeriod = 90;
+    el.innerHTML = `
+      <div class="chart-controls">
+        <select class="chart-rgsel" id="chart-rgsel">${opts}</select>
+        <div class="chart-period">
+          <button class="cper" data-d="30">30d</button>
+          <button class="cper active" data-d="90">90d</button>
+          <button class="cper" data-d="0">Todo</button>
+        </div>
+      </div>
+      <div id="chart-container"></div>
+    `;
     renderChart(g.id);
-    const rs=$('#chart-rgsel');
-    if(rs)rs.addEventListener('change',()=>{chartRegion=rs.value;renderChart(g.id);});
-    $('#detail-content').querySelectorAll('.cper').forEach(b=>{
-      b.addEventListener('click',()=>{
-        $('#detail-content').querySelectorAll('.cper').forEach(x=>x.classList.remove('active'));
-        b.classList.add('active');chartPeriod=Number(b.dataset.d);renderChart(g.id);
+    const rs = el.querySelector('#chart-rgsel');
+    if (rs) rs.addEventListener('change', () => { chartRegion = rs.value; renderChart(g.id); });
+    el.querySelectorAll('.cper').forEach(b => {
+      b.addEventListener('click', () => {
+        el.querySelectorAll('.cper').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        chartPeriod = Number(b.dataset.d);
+        renderChart(g.id);
+      });
+    });
+  }
+
+  if (!HISTORY) {
+    loadHistory().then(() => {
+      if ($('#detail-view') && $('#detail-view').classList.contains('show')) {
+        setupChartUI((HISTORY && HISTORY[g.id]) || {});
+      }
+    });
+  } else if (hasHist) {
+    renderChart(g.id);
+    const rs = $('#chart-rgsel');
+    if (rs) rs.addEventListener('change', () => { chartRegion = rs.value; renderChart(g.id); });
+    $('#detail-content').querySelectorAll('.cper').forEach(b => {
+      b.addEventListener('click', () => {
+        $('#detail-content').querySelectorAll('.cper').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        chartPeriod = Number(b.dataset.d);
+        renderChart(g.id);
       });
     });
   }
@@ -1229,7 +1498,7 @@ function renderDetail(g){
 // ============= Gráfico SVG =============
 function renderChart(gameId){
   const c=$('#chart-container');if(!c)return;
-  const hist=(HISTORY[gameId]||{})[chartRegion]||[];
+  const hist=((HISTORY && HISTORY[gameId])||{})[chartRegion]||[];
   const now=Date.now();const cut=chartPeriod>0?now-chartPeriod*864e5:0;
   const pts=hist.filter(([d])=>new Date(d).getTime()>=cut);
   if(pts.length<2){c.innerHTML=`<div class="chart-empty">Pocos datos en este período — prueba "Todo".</div>`;return;}

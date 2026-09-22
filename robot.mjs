@@ -248,7 +248,7 @@ async function main() {
 
   await mkdir('public/data', { recursive: true });
 
-  // --- Historial de precios (#2): acumula solo cuando el precio cambia ----------
+  // --- Historial de precios (#2): acumula solo cuando hay ofertas o cambios significativos de precio ----------
   let history = {};
   try { history = JSON.parse(await readFile('public/data/history.json', 'utf8')); } catch {}
   for (const g of games) {
@@ -259,11 +259,19 @@ async function main() {
       if (!history[g.id][regionCode]) history[g.id][regionCode] = [];
       const entries = history[g.id][regionCode];
       const last = entries[entries.length - 1];
-      // Solo agrega si no hay entradas o si el precio cambio
-      if (!last || last[1] !== clp) {
+      if (!last) {
         entries.push([today, clp, disc]);
-        // Cap: maximo 60 entradas por juego/region
-        if (entries.length > 60) history[g.id][regionCode] = entries.slice(-60);
+      } else {
+        const discChanged = (last[2] || 0) !== disc;
+        const priceChanged = Math.abs(clp - last[1]) / (last[1] || 1) >= 0.02;
+        if (discChanged || priceChanged) {
+          entries.push([today, clp, disc]);
+          if (entries.length > 40) history[g.id][regionCode] = entries.slice(-40);
+        } else {
+          last[0] = today;
+          last[1] = clp;
+          last[2] = disc;
+        }
       }
     }
   }
