@@ -15,6 +15,7 @@ const REGIONS = [
   { code:'US', name:'Estados Unidos', locale:'en-US', cur:'USD', access:'Gift card',        giftCard:true },
   { code:'MX', name:'Mexico',         locale:'es-MX', cur:'MXN', access:'Gift card',        giftCard:true },
   { code:'JP', name:'Japon',          locale:'ja-JP', cur:'JPY', access:'Gift card',        giftCard:true },
+  { code:'SA', name:'Arabia Saudita', locale:'ar-SA', cur:'SAR', access:'Gift card',        giftCard:true },
   { code:'UA', name:'Ucrania',        locale:'uk-UA', cur:'UAH', access:'Gift card',        giftCard:true },
   { code:'PL', name:'Polonia',        locale:'pl-PL', cur:'PLN', access:'Gift card',        giftCard:true },
   { code:'CO', name:'Colombia',       locale:'es-CO', cur:'COP', access:'Gift card',        giftCard:true },

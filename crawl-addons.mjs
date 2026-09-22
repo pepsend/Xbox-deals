@@ -14,6 +14,7 @@ const REGIONS = [
   { code:'US', cur:'USD' },
   { code:'MX', cur:'MXN' },
   { code:'JP', cur:'JPY' },
+  { code:'SA', cur:'SAR' },
   { code:'UA', cur:'UAH' },
   { code:'PL', cur:'PLN' },
   { code:'CO', cur:'COP' },

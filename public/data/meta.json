@@ -67,6 +67,14 @@
       "giftCard": true
     },
     {
+      "code": "SA",
+      "name": "Arabia Saudita",
+      "locale": "ar-SA",
+      "cur": "SAR",
+      "access": "Gift card",
+      "giftCard": true
+    },
+    {
       "code": "UA",
       "name": "Ucrania",
       "locale": "uk-UA",
