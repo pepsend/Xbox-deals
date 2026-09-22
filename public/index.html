@@ -299,8 +299,34 @@
   .cper{border:1px solid var(--border);background:none;color:var(--muted);font-size:11.5px;
     padding:3px 9px;border-radius:6px;cursor:pointer;font-weight:600}
   .cper.active{background:var(--surface-2);color:var(--text);border-color:var(--border-2)}
-  .chart-empty{padding:40px 0;text-align:center;color:var(--faint);font-size:12.5px}
   svg.price-chart{width:100%;display:block;overflow:visible}
+
+  /* Badges y secciones de DLCs y Monedas */
+  .kind-badge{display:inline-flex;align-items:center;font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;letter-spacing:.4px;text-transform:uppercase;font-family:'Inter',system-ui,sans-serif}
+  .kind-badge.dlc{background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent-bright);border:1px solid color-mix(in srgb,var(--accent) 28%,transparent)}
+  .kind-badge.cur{background:color-mix(in srgb,#f59e0b 14%,transparent);color:#d97706;border:1px solid color-mix(in srgb,#f59e0b 28%,transparent)}
+  :root[data-theme="dark"] .kind-badge.cur{color:#fbbf24}
+  .base-tag{display:inline-flex;align-items:center;font-size:11px;color:var(--muted);background:var(--surface-2);border:1px solid var(--border);border-radius:5px;padding:1px 6px;margin-left:4px;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle}
+
+  .addon-subhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .addon-count{font-size:12px;color:var(--muted);font-weight:500}
+  .addon-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+  @media(max-width:600px){.addon-grid{grid-template-columns:1fr}}
+  .addon-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px;display:flex;gap:10px;align-items:center;transition:border-color .15s,background .15s;position:relative}
+  .addon-card:hover{border-color:var(--border-2);background:var(--raise)}
+  .addon-thumb,.addon-thumb-ph{width:52px;height:52px;border-radius:7px;object-fit:cover;flex-shrink:0;background:var(--surface-2)}
+  .addon-thumb-ph{display:grid;place-items:center;font-size:18px;color:var(--faint)}
+  .addon-card-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+  .addon-card-title{font-size:12.5px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .addon-card-prices{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);flex-wrap:wrap}
+  .addon-card-prices .bprice{font-size:13.5px;font-weight:700;color:var(--accent-bright)}
+  .addon-card-prices .tag{font-size:10px;padding:1px 4px}
+  .addon-card-actions{display:flex;align-items:center;gap:4px;margin-top:2px}
+  .addon-cmp-btn{border:none;background:none;color:var(--accent-bright);font-size:11.5px;font-weight:600;cursor:pointer;padding:0}
+  .addon-cmp-btn:hover{text-decoration:underline}
+  .addon-ext-link{margin-left:auto;color:var(--muted);font-size:11.5px;text-decoration:none}
+  .addon-ext-link:hover{color:var(--text)}
+  .addon-empty{padding:24px;text-align:center;background:var(--surface);border:1px dashed var(--border);border-radius:10px;color:var(--faint);font-size:12.5px}
 
   /* Vista móvil refinada */
   @media(max-width:600px){
@@ -404,6 +430,8 @@
       <button class="tab active" data-mode="all">Todos los juegos</button>
       <button class="tab" data-mode="nuevos">Nuevos lanzamientos<span class="wl-badge" id="new-badge" style="display:none">0</span></button>
       <button class="tab" data-mode="ofertas"><span class="dot"></span>Ofertas</button>
+      <button class="tab" data-mode="dlc">DLCs y Expansiones<span class="wl-badge" id="dlc-badge" style="display:none">0</span></button>
+      <button class="tab" data-mode="monedas">Monedas del juego<span class="wl-badge" id="cur-badge" style="display:none">0</span></button>
       <button class="tab" data-mode="watchlist">Watchlist<span class="wl-badge" id="wl-badge" style="display:none">0</span></button>
     </div>
   </div>
@@ -484,11 +512,18 @@
 
 <script>
 // ============= Estado global =============
-let GAMES=[], META=null, REGIONS=[], REG={}, ROWS=[], HISTORY={};
+let GAMES=[], ADDONS=[], META=null, REGIONS=[], REG={}, ROWS=[], HISTORY={};
 let page=1, PER=40, mode='all';
 let WATCHLIST=new Set(), PRICE_SNAP={};
 let cmpGame=null, cmpAsc=true;
 let chartPeriod=90, chartRegion='';
+
+const cleanTitle = s => (s || '').toLowerCase()
+  .replace(/[™®]/g, '')
+  .replace(/[:\-–—]/g, ' ')
+  .replace(/\b(para (xbox|pc|windows).*|edición\b.*|edition\b.*|deluxe|standard|complete|goty|digital|ultimate|bundle|remastered|definitive|anniversary|gold|premium|x\|s|series x\|s|xbox one|windows)\b/gi, ' ')
+  .replace(/[^a-z0-9 ]/g, ' ')
+  .replace(/\s+/g, ' ').trim();
 
 const $=s=>document.querySelector(s);
 const fmtCLP=n=>n==null?'-':'$'+Math.round(n).toLocaleString('es-CL');
@@ -640,7 +675,7 @@ window.addEventListener('popstate',()=>{if(GAMES.length){loadURL();render();}});
 function checkHash(){
   if(!location.hash.startsWith('#game/'))return false;
   const id=location.hash.slice(6);
-  const g=GAMES.find(x=>x.id===id);
+  const g=GAMES.find(x=>x.id===id) || ADDONS.find(x=>x.id===id);
   if(g){showDetail(g);return true;}
   return false;
 }
@@ -667,12 +702,14 @@ async function boot(){
   loadWL();updateWLBadge();
   try{
     const safeJson=r=>(r&&r.ok)?r.json():null;
-    const [g,m,h]=await Promise.all([
+    const [g,m,h,add]=await Promise.all([
       fetch('./data/games.json').then(r=>r.json()),
       fetch('./data/meta.json').then(r=>r.json()),
-      fetch('./data/history.json').then(safeJson).catch(()=>null)
+      fetch('./data/history.json').then(safeJson).catch(()=>null),
+      fetch('./data/addons.json').then(safeJson).catch(()=>[])
     ]);
     GAMES=g;META=m;REGIONS=m.regions;REGIONS.forEach(r=>REG[r.code]=r);HISTORY=h||{};
+    ADDONS=add||[];
   }catch(e){
     console.error('Boot error:',e);
     $('#state').innerHTML='<div>No pude cargar los datos todavía. Si recién desplegaste, espera a que el robot corra por primera vez.</div>';
@@ -680,7 +717,7 @@ async function boot(){
   }
 
   const refCode=(REGIONS.find(r=>r.ref)||REGIONS[0]).code;
-  for(const g of GAMES){
+  function processCatalogItem(g){
     const list=[];let best=null,bestOffer=null;
     for(const R of REGIONS){
       const p=g.r[R.code];if(!p)continue;
@@ -702,8 +739,18 @@ async function boot(){
     g._rel=g.d||(g.y?(g.y+'-01-01'):'0000-00-00');
   }
 
+  for(const g of GAMES) processCatalogItem(g);
+  for(const a of ADDONS) processCatalogItem(a);
+
+  const dlcCount = META.dlcCount || ADDONS.filter(x=>x.kind==='dlc').length;
+  const curCount = META.currencyCount || ADDONS.filter(x=>x.kind==='cur').length;
+  const dlcBadge = $('#dlc-badge');
+  if(dlcBadge && dlcCount){ dlcBadge.textContent = dlcCount.toLocaleString('es-CL'); dlcBadge.style.display = ''; }
+  const curBadge = $('#cur-badge');
+  if(curBadge && curCount){ curBadge.textContent = curCount.toLocaleString('es-CL'); curBadge.style.display = ''; }
+
   $('#state').hidden=true;$('#controls').hidden=false;$('#tabs').hidden=false;
-  $('#stat').innerHTML='Actualizado '+(META.updated?new Date(META.updated).toLocaleDateString('es-CL'):'-')+'<br><b>'+META.count.toLocaleString('es-CL')+'</b> juegos · <b>'+META.withRating.toLocaleString('es-CL')+'</b> con nota';
+  $('#stat').innerHTML='Actualizado '+(META.updated?new Date(META.updated).toLocaleDateString('es-CL'):'-')+'<br><b>'+META.count.toLocaleString('es-CL')+'</b> juegos · <b>'+(dlcCount+curCount).toLocaleString('es-CL')+'</b> DLCs y monedas · <b>'+META.withRating.toLocaleString('es-CL')+'</b> con nota';
   $('#foot').innerHTML='<b>Datos:</b> tienda oficial de Xbox de cada región, convertidos a CLP con el tipo de cambio del día. Notas de IGDB.';
 
   // Género dropdown
@@ -741,7 +788,27 @@ function render(){
   const sort=$('#sort').value;const rated=$('#rated').checked;const genre=$('#genre')?.value||'';
   const bestOf=g=>g._best;
   const saveOf=g=>{const b=bestOf(g);return(g._cl&&b&&b.clp<g._cl)?(1-b.clp/g._cl):-1;};
-  ROWS=GAMES.filter(g=>{
+
+  let source = GAMES;
+  if(mode==='dlc') source = ADDONS.filter(x=>x.kind==='dlc');
+  else if(mode==='monedas') source = ADDONS.filter(x=>x.kind==='cur');
+  else if(mode==='ofertas') source = [...GAMES, ...ADDONS];
+  else if(mode==='watchlist') source = [...GAMES, ...ADDONS];
+
+  const qInput=$('#q');
+  if(qInput){
+    if(mode==='dlc') qInput.placeholder='Buscar DLC, expansión o pase...';
+    else if(mode==='monedas') qInput.placeholder='Buscar monedas, puntos, créditos...';
+    else qInput.placeholder='Buscar juego...';
+  }
+
+  const shelf=$('#new-shelf');
+  if(shelf){
+    if(mode==='all'||mode==='nuevos') shelf.hidden=(GAMES.filter(g=>g._isRel&&g.d>=FOURTEEN_DAYS_AGO).length===0);
+    else shelf.hidden=true;
+  }
+
+  ROWS=source.filter(g=>{
     if(mode==='ofertas'&&!(g._disc>0))return false;
     if(mode==='nuevos'&&!(g._isRel && g.d >= THIRTY_DAYS_AGO))return false;
     if(mode==='watchlist'&&!WATCHLIST.has(g.id))return false;
@@ -782,7 +849,12 @@ function render(){
       return bPop-aPop;
     }
   }});
-  $('#count').textContent=ROWS.length.toLocaleString('es-CL')+' juegos';
+  let label = 'juegos';
+  if(mode==='dlc') label = 'DLCs y expansiones';
+  else if(mode==='monedas') label = 'monedas y packs';
+  else if(mode==='ofertas') label = 'ofertas activas';
+  else if(mode==='watchlist') label = 'guardados';
+  $('#count').textContent=ROWS.length.toLocaleString('es-CL')+' '+label;
   page=1;draw();
 }
 function draw(){
@@ -888,6 +960,12 @@ function card(g){
   const starred=WATCHLIST.has(g.id);
   el.innerHTML=`${g.img?`<img class="cover" src="${g.img}" alt="" loading="lazy">`:`<div class="cover ph">?</div>`}
   <div class="info"><div class="gtitle">${g.t}</div>${(()=>{
+    if(g.kind==='dlc'){
+      return `<div class="gmeta"><span class="kind-badge dlc">DLC / Expansión</span>${g.baseTitle?`<span class="base-tag" title="Para ${g.baseTitle}">Para ${g.baseTitle}</span>`:''}</div>`;
+    }
+    if(g.kind==='cur'){
+      return `<div class="gmeta"><span class="kind-badge cur">Moneda del juego</span>${g.baseTitle?`<span class="base-tag" title="Para ${g.baseTitle}">Para ${g.baseTitle}</span>`:''}</div>`;
+    }
     let relTag='';
     if(g.d===TODAY_STR) relTag=`<span class="new-tag today">¡Estrenado Hoy!</span>`;
     else if(g.d===YESTERDAY_STR) relTag=`<span class="new-tag yesterday">Lanzado Ayer</span>`;
@@ -1006,17 +1084,54 @@ function renderDetail(g){
   const defReg=hist['CL']?'CL':(Object.keys(hist)[0]||'');
   chartRegion=defReg;chartPeriod=90;
 
+  const isAddonForThisGame = (a) => {
+    if(a.baseId && a.baseId === g.id) return true;
+    const cleanG = cleanTitle(g.t);
+    if(cleanG.length < 4) return false;
+    const cleanA = ' ' + cleanTitle(a.t) + ' ';
+    return cleanA.includes(' ' + cleanG + ' ');
+  };
+
+  const gameDLCs = (!g.kind) ? ADDONS.filter(a => a.kind === 'dlc' && isAddonForThisGame(a)) : [];
+  const gameCurs = (!g.kind) ? ADDONS.filter(a => a.kind === 'cur' && isAddonForThisGame(a)) : [];
+
+  const renderAddonCards = (list) => list.map(a => {
+    const b = a._best;
+    return `<div class="addon-card">
+      ${a.img ? `<img class="addon-thumb" src="${a.img}?w=120&h=120&format=jpg&q=80" alt="${a.t}" loading="lazy">` : `<div class="addon-thumb-ph">?</div>`}
+      <div class="addon-card-info">
+        <div class="addon-card-title" title="${a.t}">${a.t}</div>
+        <div class="addon-card-prices">
+          ${b ? `<span class="bprice">${fmtCLP(b.clp)}</span> <span class="sub2">en ${REG[b.code]?.name||b.code}</span>` : '<span class="sub2">Sin precio</span>'}
+          ${(b && b.disc) ? `<span class="tag">-${b.disc}%</span>` : ''}
+        </div>
+        <div class="addon-card-actions">
+          <button class="addon-cmp-btn" data-id="${a.id}">Comparar regiones →</button>
+          <a class="addon-ext-link" href="https://www.microsoft.com/store/productId/${a.id}?market=CL" target="_blank" rel="noopener">Store</a>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  let heroBadge = '';
+  if(g.kind === 'dlc') heroBadge = `<span class="kind-badge dlc">DLC / Expansión</span>`;
+  else if(g.kind === 'cur') heroBadge = `<span class="kind-badge cur">Moneda del juego</span>`;
+
   $('#detail-content').innerHTML=`
   <div class="detail-hero">
     ${coverEl}
     <div>
       <h1 class="detail-title">${g.t}</h1>
-      <div class="detail-score-row">${scoreEl}${isPreorder(g)?`<span class="preorder-badge" style="font-size:12px;padding:3px 9px"><span class="dot"></span>Preventa · Lanzamiento el ${fmtRelDate(g.d)}</span>`:`<span class="year">${g.y||''}</span>`}</div>
+      <div class="detail-score-row">
+        ${heroBadge || scoreEl}
+        ${isPreorder(g)?`<span class="preorder-badge" style="font-size:12px;padding:3px 9px"><span class="dot"></span>Preventa · Lanzamiento el ${fmtRelDate(g.d)}</span>`:`<span class="year">${g.y||''}</span>`}
+      </div>
       ${genreTags?`<div class="detail-genre-tags">${genreTags}</div>`:''}
       ${best?`<div class="detail-best">Más barato en <b>${REG[best.code]?.name||best.code}</b> — <span class="bprice">${fmtCLP(best.clp)}</span>${save?` <span class="tag">-${save}% vs Chile</span>`:''}</div>`:''}
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
         <button class="act-btn star-btn-d${WATCHLIST.has(g.id)?' star-on':''}">${STAR_ICO}<span>${WATCHLIST.has(g.id)?'Guardado':'Guardar en watchlist'}</span></button>
         ${g.img?`<button class="act-btn dl-btn-d">${DLOAD}<span>Portada 4K</span></button>`:''}
+        ${(g.baseTitle)?`<button class="act-btn view-base-btn" data-baseid="${g.baseId||''}">${BACK}<span>Ver juego base (${g.baseTitle})</span></button>`:''}
       </div>
     </div>
   </div>
@@ -1037,9 +1152,51 @@ function renderDetail(g){
   <div class="detail-section">
     <p class="detail-section-title">Precios por región</p>
     <div style="border:1px solid var(--border);border-radius:11px;overflow:hidden">${regHTML}</div>
-  </div>`;
+  </div>
+  ${(!g.kind && gameDLCs.length)?`
+  <div class="detail-section">
+    <div class="addon-subhead">
+      <p class="detail-section-title" style="margin:0">DLCs y Expansiones (${gameDLCs.length})</p>
+      <span class="addon-count">Precios por región</span>
+    </div>
+    <div class="addon-grid">${renderAddonCards(gameDLCs)}</div>
+  </div>`:''}
+  ${(!g.kind && gameCurs.length)?`
+  <div class="detail-section">
+    <div class="addon-subhead">
+      <p class="detail-section-title" style="margin:0">Monedas y Créditos del juego (${gameCurs.length})</p>
+      <span class="addon-count">Precios por región</span>
+    </div>
+    <div class="addon-grid">${renderAddonCards(gameCurs)}</div>
+  </div>`:''}
+  ${(!g.kind && !gameDLCs.length && !gameCurs.length)?`
+  <div class="detail-section">
+    <p class="detail-section-title">Complementos y DLCs</p>
+    <div class="addon-empty">
+      <div>No hay complementos pre-indexados en el catálogo local para este título.</div>
+      <a href="https://www.microsoft.com/store/productId/${g.id}?market=CL" target="_blank" rel="noopener" class="cmp-link" style="display:inline-block;margin-top:8px">Buscar complementos en Microsoft Store →</a>
+    </div>
+  </div>`:''}
+  `;
 
   // Eventos detalle
+  $('#detail-content').querySelectorAll('.addon-cmp-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const addon = ADDONS.find(x => x.id === btn.dataset.id);
+      if(addon) openCmp(addon);
+    });
+  });
+  const baseBtn = $('#detail-content').querySelector('.view-base-btn');
+  if(baseBtn) {
+    baseBtn.addEventListener('click', () => {
+      const baseId = baseBtn.dataset.baseid;
+      const baseGame = GAMES.find(x => x.id === baseId) || (g.baseTitle && GAMES.find(x => cleanTitle(x.t) === cleanTitle(g.baseTitle)));
+      if(baseGame) {
+        history.pushState({}, '', location.pathname + location.search + '#game/' + baseGame.id);
+        showDetail(baseGame);
+      }
+    });
+  }
   const sd=$('#detail-content').querySelector('.star-btn-d');
   if(sd)sd.addEventListener('click',()=>{toggleWL(g.id);sd.classList.toggle('star-on',WATCHLIST.has(g.id));sd.innerHTML=STAR_ICO+'<span>'+(WATCHLIST.has(g.id)?'Guardado':'Guardar en watchlist')+'</span>';});
   const dd=$('#detail-content').querySelector('.dl-btn-d');

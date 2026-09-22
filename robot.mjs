@@ -3,8 +3,8 @@
 //  Enumera TODO el catalogo de Xbox por region, saca precios + descuentos,
 //  les pega la nota (IGDB, opcional) y escribe public/data/*.json
 //  Sin dependencias: usa fetch nativo de Node 18+.
-// ============================================================================
 import { mkdir, writeFile, readFile } from 'node:fs/promises';
+import { crawlAddons } from './crawl-addons.mjs';
 
 // --- Regiones a comparar. La primera (CL) es la referencia -------------------
 const REGIONS = [
@@ -272,15 +272,29 @@ async function main() {
   const newReleasesCount = games.filter(g => g.d && g.d <= today && g.d >= new Date(new Date(today).getTime() - 30 * 864e5).toISOString().slice(0, 10)).length;
 
   await writeFile('public/data/games.json', JSON.stringify(games));
+
+  let addons = [];
+  try {
+    addons = await crawlAddons(rates);
+  } catch (err) {
+    console.error('Error al recolectar DLCs y monedas:', err);
+  }
+
+  const dlcCount = addons.filter(x => x.kind === 'dlc').length;
+  const currencyCount = addons.filter(x => x.kind === 'cur').length;
+
   await writeFile('public/data/meta.json', JSON.stringify({
     updated: new Date().toISOString(),
     fxDate, count: games.length,
     withRating: games.filter(g => g.mc != null).length,
     activeOffersCount,
     newReleasesCount,
+    addonsCount: addons.length,
+    dlcCount,
+    currencyCount,
     regions: REGIONS,
   }));
-  console.log(`== Listo: ${games.length} juegos escritos (${games.filter(g=>g.mc!=null).length} con nota) ==`);
+  console.log(`== Listo: ${games.length} juegos y ${addons.length} DLCs/Monedas escritos (${games.filter(g=>g.mc!=null).length} con nota) ==`);
 }
 function firstMeta(byRegion, id) { for (const c of Object.keys(byRegion)) if (byRegion[c][id]) return byRegion[c][id]; return null; }
 
