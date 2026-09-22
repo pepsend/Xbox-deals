@@ -51,6 +51,22 @@
       "giftCard": true
     },
     {
+      "code": "MX",
+      "name": "Mexico",
+      "locale": "es-MX",
+      "cur": "MXN",
+      "access": "Gift card",
+      "giftCard": true
+    },
+    {
+      "code": "JP",
+      "name": "Japon",
+      "locale": "ja-JP",
+      "cur": "JPY",
+      "access": "Gift card",
+      "giftCard": true
+    },
+    {
       "code": "UA",
       "name": "Ucrania",
       "locale": "uk-UA",

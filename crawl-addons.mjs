@@ -12,6 +12,8 @@ const REGIONS = [
   { code:'TR', cur:'TRY' },
   { code:'BR', cur:'BRL' },
   { code:'US', cur:'USD' },
+  { code:'MX', cur:'MXN' },
+  { code:'JP', cur:'JPY' },
   { code:'UA', cur:'UAH' },
   { code:'PL', cur:'PLN' },
   { code:'CO', cur:'COP' },
