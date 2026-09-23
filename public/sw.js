@@ -1,6 +1,6 @@
-// Service Worker — Xbox Deals (v10)
+// Service Worker — Xbox Deals (v11)
 // Estrategia de carga instantánea optimizada para iOS Safari y escritorio
-const CACHE = 'xbox-deals-v10';
+const CACHE = 'xbox-deals-v11';
 const STATIC = ['./manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {

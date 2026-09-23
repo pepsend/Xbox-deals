@@ -160,12 +160,14 @@
   .card:hover{border-color:var(--border-2)}
   .card.starred{border-color:color-mix(in srgb,var(--accent-bright) 40%,var(--border))}
   .cover{width:72px;height:72px;border-radius:8px;object-fit:cover;background:var(--surface-2);cursor:pointer;
-    box-shadow:0 0 0 1px rgba(255,255,255,0.06) inset,0 3px 10px rgba(0,0,0,.3)}
+    box-shadow:0 0 0 1px rgba(255,255,255,0.06) inset,0 3px 10px rgba(0,0,0,.3);transition:transform .16s ease,box-shadow .16s ease}
+  .cover:hover{transform:scale(1.03);box-shadow:0 0 0 1.5px var(--accent-bright),0 6px 16px rgba(0,0,0,.45)}
+  .cover:active{transform:scale(0.97)}
   .cover.ph{display:grid;place-items:center;color:var(--faint)}
   .info{min-width:0}
   .gtitle{font-family:'Sora','Inter',system-ui,sans-serif;font-weight:600;font-size:15.5px;line-height:1.25;margin:0 0 4px;
-    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;cursor:pointer;transition:color .15s}
-  .gtitle:hover{color:var(--accent-bright)}
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;cursor:text;user-select:text;-webkit-user-select:text}
+  .gtitle::selection{background:var(--accent);color:#08110a}
   .gmeta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   
   /* Nota / Metascore refinado */
@@ -290,7 +292,8 @@
   .detail-hero{display:grid;grid-template-columns:130px 1fr;gap:20px;padding:18px 0 24px;align-items:start}
   .detail-cover,.detail-cover-ph{width:130px;height:130px;border-radius:12px;object-fit:cover;background:var(--surface-2);box-shadow:0 8px 24px rgba(0,0,0,.35)}
   .detail-cover-ph{display:grid;place-items:center;font-size:36px;color:var(--faint)}
-  .detail-title{margin:0 0 8px;font-family:'Sora','Inter',system-ui,sans-serif;font-size:22px;font-weight:800;letter-spacing:-.4px}
+  .detail-title{margin:0 0 8px;font-family:'Sora','Inter',system-ui,sans-serif;font-size:22px;font-weight:800;letter-spacing:-.4px;user-select:text;-webkit-user-select:text;cursor:text}
+  .detail-title::selection{background:var(--accent);color:#08110a}
   .detail-score-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
   .detail-genre-tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px}
   .detail-gtag{font-size:11px;color:var(--faint);background:var(--surface-2);border:1px solid var(--border);padding:2px 8px;border-radius:5px;font-weight:500;cursor:pointer;transition:color .15s,border-color .15s,background .15s}
@@ -310,6 +313,14 @@
     padding:3px 9px;border-radius:6px;cursor:pointer;font-weight:600}
   .cper.active{background:var(--surface-2);color:var(--text);border-color:var(--border-2)}
   svg.price-chart{width:100%;display:block;overflow:visible}
+
+  /* Notificación Toast (Feedback de copiado sin emojis) */
+  .toast-container{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9999;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:8px}
+  .toast{background:#12151c;color:#f0f3f6;border:1px solid #282f3c;box-shadow:0 12px 32px rgba(0,0,0,.65);
+    padding:9px 18px;border-radius:24px;font-size:12.5px;font-weight:600;letter-spacing:-0.1px;display:inline-flex;align-items:center;gap:8px;
+    animation:toastIn .2s cubic-bezier(0.16,1,0.3,1) forwards;pointer-events:auto;max-width:calc(100vw - 32px)}
+  .toast-icon{width:14px;height:14px;color:var(--accent-bright);flex:none}
+  @keyframes toastIn{from{opacity:0;transform:translateY(12px) scale(0.96)}to{opacity:1;transform:translateY(0) scale(1)}}
 
   /* Badges y secciones de DLCs y Monedas */
   .kind-badge{display:inline-flex;align-items:center;font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;letter-spacing:.4px;text-transform:uppercase;font-family:'Inter',system-ui,sans-serif}
@@ -645,6 +656,75 @@ function checkAlerts(){
   }
 }
 
+// ============= Copiado de títulos & Toast (Sin emojis) =============
+function copyGameTitle(title){
+  if(!title)return;
+  const msg='Copiado: "'+title+'"';
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(title)
+      .then(()=>showToast(msg))
+      .catch(()=>fallbackCopy(title,()=>showToast(msg)));
+  } else {
+    fallbackCopy(title,()=>showToast(msg));
+  }
+}
+
+function fallbackCopy(text,cb){
+  try{
+    const ta=document.createElement('textarea');
+    ta.value=text;
+    ta.setAttribute('readonly','');
+    ta.style.position='fixed';
+    ta.style.top='-9999px';
+    ta.style.left='-9999px';
+    ta.style.opacity='0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    if(cb)cb();
+  }catch(err){
+    console.warn('Copy error:',err);
+  }
+}
+
+let toastTimer=null;
+function showToast(msg){
+  let c=$('#toast-box');
+  if(!c){
+    c=document.createElement('div');
+    c.id='toast-box';
+    c.className='toast-container';
+    document.body.appendChild(c);
+  }
+  c.innerHTML=`
+    <div class="toast">
+      <svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+      <span>${msg}</span>
+    </div>
+  `;
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>{
+    if(c)c.innerHTML='';
+  },2200);
+}
+
+// ============= Navegación, Estado y Restauración de Scroll =============
+let savedScrollY=0;
+let savedPage=1;
+let lastViewedGameId=null;
+
+if('scrollRestoration' in history){
+  history.scrollRestoration='manual';
+}
+
+function resetSavedScroll(){
+  savedScrollY=0;
+  lastViewedGameId=null;
+}
+
 // ============= URL persistente (#9) =============
 function pushURL(){
   const p=new URLSearchParams();
@@ -653,7 +733,9 @@ function pushURL(){
   if(qv)p.set('q',qv);if(sv&&sv!=='new')p.set('sort',sv);if(mode!=='all')p.set('mode',mode);
   if(rv)p.set('rated','1');if(gv)p.set('genre',gv);
   if(cv)p.set('country',cv);if(ob)p.set('onlyBest','1');
-  history.replaceState({},'','?'+(p.toString()));
+  const qs=p.toString();
+  const url=(qs?'?'+qs:location.pathname)+(location.hash||'');
+  history.replaceState(history.state||{},'',url);
 }
 function loadURL(){
   const p=new URLSearchParams(location.search);
@@ -704,6 +786,7 @@ function filterByCountry(code, onlyCheapest = false){
     const ob=$('#only-best');
     if(ob)ob.checked=Boolean(onlyCheapest);
     updateCountryUI();
+    resetSavedScroll();
     pushURL();
     render();
     if($('#detail-view').classList.contains('show')){
@@ -717,6 +800,7 @@ function filterByGenre(name){
   if(sel){
     sel.value=name;
     updateGenrePill();
+    resetSavedScroll();
     pushURL();
     render();
     if($('#detail-view').classList.contains('show')){
@@ -725,32 +809,98 @@ function filterByGenre(name){
     window.scrollTo({top:0,behavior:'smooth'});
   }
 }
-window.addEventListener('popstate',()=>{if(GAMES.length){loadURL();render();}});
 
 // ============= Hash routing — vista detalle (#3) =============
+function openGameDetail(g){
+  if(!$('#detail-view').classList.contains('show')){
+    savedScrollY=window.scrollY||document.documentElement.scrollTop||0;
+    savedPage=page;
+  }
+  lastViewedGameId=g.id;
+  history.pushState({inDetail:true,id:g.id,scrollY:savedScrollY,page:savedPage},'',location.pathname+location.search+'#game/'+g.id);
+  showDetail(g);
+}
+
 function checkHash(){
-  if(!location.hash.startsWith('#game/'))return false;
+  if(!location.hash.startsWith('#game/')){
+    if($('#detail-view')&&$('#detail-view').classList.contains('show')){
+      showMain();
+    }
+    return false;
+  }
   const id=location.hash.slice(6);
-  const g=GAMES.find(x=>x.id===id) || ADDONS.find(x=>x.id===id);
-  if(g){showDetail(g);return true;}
+  const g=GAMES.find(x=>x.id===id)||ADDONS.find(x=>x.id===id);
+  if(g){
+    showDetail(g);
+    return true;
+  }
   return false;
 }
 function showDetail(g){
+  if(!$('#detail-view').classList.contains('show')){
+    savedScrollY=window.scrollY||document.documentElement.scrollTop||0;
+    savedPage=page;
+  }
+  lastViewedGameId=g.id;
   $('#main-view').classList.add('hide');
   $('#detail-view').classList.add('show');
   document.title=g.t+' — Precios Xbox por región';
-  renderDetail(g);window.scrollTo({top:0,behavior:'instant'});
+  renderDetail(g);
+  window.scrollTo({top:0,behavior:'instant'});
 }
 function showMain(){
   $('#detail-view').classList.remove('show');
   $('#main-view').classList.remove('hide');
   document.title='Comparador de precios Xbox — Chile y 15 regiones';
+
+  if(ROWS.length===0&&GAMES.length>0){
+    render();
+  } else {
+    const targetScroll=savedScrollY;
+    const targetId=lastViewedGameId;
+    window.scrollTo(0,targetScroll);
+    requestAnimationFrame(()=>{
+      window.scrollTo(0,targetScroll);
+      setTimeout(()=>{
+        window.scrollTo(0,targetScroll);
+        if(targetId){
+          const cardEl=document.querySelector(`.card[data-id="${targetId}"]`);
+          if(cardEl){
+            const rect=cardEl.getBoundingClientRect();
+            if(rect.top<-50||rect.bottom>window.innerHeight+50){
+              cardEl.scrollIntoView({block:'nearest',behavior:'instant'});
+            }
+          }
+        }
+      },30);
+    });
+  }
+}
+function navigateBackToCatalog(){
+  if(history.state&&history.state.inDetail&&window.history.length>1){
+    history.back();
+  } else {
+    history.replaceState({},'',location.pathname+location.search);
+    showMain();
+  }
 }
 (()=>{
   const b=$('#detail-back');
   b.innerHTML=BACK+' Volver al catálogo';
-  b.addEventListener('click',()=>{history.replaceState({},'',location.pathname+location.search);showMain();});
+  b.addEventListener('click',navigateBackToCatalog);
 })();
+
+window.addEventListener('popstate',()=>{
+  if(!GAMES.length)return;
+  if(location.hash.startsWith('#game/')){
+    checkHash();
+  } else if($('#detail-view')&&$('#detail-view').classList.contains('show')){
+    showMain();
+  } else {
+    loadURL();
+    render();
+  }
+});
 window.addEventListener('hashchange',()=>{if(GAMES.length)checkHash();});
 
 // ============= Cache persistente (IndexedDB) & Carga instantánea =============
@@ -936,11 +1086,13 @@ function bindUIListeners() {
     t.classList.add('active');
     mode = t.dataset.mode;
     if (mode === 'ofertas') $('#sort').value = 'disc';
+    resetSavedScroll();
     pushURL();
     render();
   }));
 
   ['#q', '#sort', '#rated', '#genre', '#country', '#only-best'].forEach(s => $(s)?.addEventListener('input', () => {
+    resetSavedScroll();
     if (s === '#genre') updateGenrePill();
     if (s === '#country' || s === '#only-best') updateCountryUI();
     pushURL();
@@ -949,12 +1101,12 @@ function bindUIListeners() {
 
   $('#genre-clear-btn')?.addEventListener('click', () => {
     const sel = $('#genre');
-    if (sel) { sel.value = ''; updateGenrePill(); pushURL(); render(); }
+    if (sel) { sel.value = ''; updateGenrePill(); resetSavedScroll(); pushURL(); render(); }
   });
 
   $('#country-clear-btn')?.addEventListener('click', () => {
     const sel = $('#country');
-    if (sel) { sel.value = ''; updateCountryUI(); pushURL(); render(); }
+    if (sel) { sel.value = ''; updateCountryUI(); resetSavedScroll(); pushURL(); render(); }
   });
 }
 
@@ -1191,7 +1343,10 @@ function draw(){
 }
 function goPage(p){
   const total=Math.max(1,Math.ceil(ROWS.length/PER));
-  page=Math.min(Math.max(1,p),total);draw();window.scrollTo({top:0,behavior:'smooth'});
+  page=Math.min(Math.max(1,p),total);
+  resetSavedScroll();
+  draw();
+  window.scrollTo({top:0,behavior:'smooth'});
 }
 function buildPager(){
   const total=Math.max(1,Math.ceil(ROWS.length/PER));
@@ -1235,14 +1390,23 @@ function renderNewShelf(){
       <span class="shelf-badge ${bClass}">${bText}</span>
       ${g.img?`<img class="shelf-img" src="${g.img}?w=260&h=260&format=jpg&q=80" alt="${g.t}" loading="lazy">`:`<div class="shelf-img ph">?</div>`}
       <div class="shelf-info">
-        <div class="shelf-title">${g.t}</div>
+        <div class="shelf-title" title="Doble clic para copiar">${g.t}</div>
         <div class="shelf-price">${dispPrice}</div>
       </div>
     `;
     item.addEventListener('click',()=>{
-      history.pushState({},'',location.pathname+location.search+'#game/'+g.id);
-      showDetail(g);
+      openGameDetail(g);
     });
+    const sTitle=item.querySelector('.shelf-title');
+    if(sTitle){
+      sTitle.style.userSelect='text';
+      sTitle.style.cursor='text';
+      sTitle.addEventListener('click',e=>e.stopPropagation());
+      sTitle.addEventListener('dblclick',e=>{
+        e.stopPropagation();
+        copyGameTitle(g.t);
+      });
+    }
     scroll.appendChild(item);
   });
 
@@ -1326,8 +1490,8 @@ function card(g){
     </div>`;
   }).join('');
   const starred=WATCHLIST.has(g.id);
-  el.innerHTML=`${g.img?`<img class="cover" src="${g.img}" alt="" loading="lazy">`:`<div class="cover ph">?</div>`}
-  <div class="info"><div class="gtitle">${g.t}</div>${(()=>{
+  el.innerHTML=`${g.img?`<img class="cover" src="${g.img}" alt="${g.t}" loading="lazy" title="Ver detalle de ${g.t}">`:`<div class="cover ph" title="Ver detalle de ${g.t}">?</div>`}
+  <div class="info"><div class="gtitle" title="Doble clic para copiar">${g.t}</div>${(()=>{
     if(g.kind==='dlc'){
       return `<div class="gmeta"><span class="kind-badge dlc">DLC / Expansión</span>${g.baseTitle?`<span class="base-tag" title="Para ${g.baseTitle}">Para ${g.baseTitle}</span>`:''}</div>`;
     }
@@ -1356,17 +1520,12 @@ function card(g){
   xbtn.addEventListener('click',()=>{const o=xbx.classList.toggle('open');xbtn.classList.toggle('open',o);});
   el.querySelector('.star-btn').addEventListener('click',()=>toggleWL(g.id));
   el.querySelector('.cmp-btn').addEventListener('click',()=>openCmp(g));
-  el.querySelector('.detail-btn').addEventListener('click',()=>{
-    history.pushState({},'',location.pathname+location.search+'#game/'+g.id);
-    showDetail(g);
-  });
-  el.querySelector('.cover').addEventListener('click',()=>{
-    history.pushState({},'',location.pathname+location.search+'#game/'+g.id);
-    showDetail(g);
-  });
-  el.querySelector('.gtitle').addEventListener('click',()=>{
-    history.pushState({},'',location.pathname+location.search+'#game/'+g.id);
-    showDetail(g);
+  el.querySelector('.detail-btn').addEventListener('click',()=>openGameDetail(g));
+  el.querySelector('.cover').addEventListener('click',()=>openGameDetail(g));
+  const titleEl=el.querySelector('.gtitle');
+  titleEl.addEventListener('dblclick',e=>{
+    e.stopPropagation();
+    copyGameTitle(g.t);
   });
   el.querySelectorAll('.rrow-country-btn').forEach(btn=>{
     btn.addEventListener('click',e=>{
@@ -1403,7 +1562,16 @@ function card(g){
 function openCmp(g){
   cmpGame=g;cmpAsc=true;
   const mc=$('#modal-cover');mc.src=g.img||'';mc.style.display=g.img?'':'none';
-  $('#modal-title').textContent=g.t;
+  const mt=$('#modal-title');
+  mt.textContent=g.t;
+  mt.title='Doble clic para copiar';
+  mt.style.cursor='text';
+  mt.style.userSelect='text';
+  mt.onclick=(e)=>e.stopPropagation();
+  mt.ondblclick=(e)=>{
+    e.stopPropagation();
+    copyGameTitle(g.t);
+  };
   renderCmpBody();
   $('#modal-overlay').classList.add('open');document.body.style.overflow='hidden';
 }
@@ -1563,6 +1731,11 @@ function renderDetail(g){
   `;
 
   // Eventos detalle
+  const dt = $('#detail-content').querySelector('.detail-title');
+  if (dt) {
+    dt.title = 'Doble clic para copiar';
+    dt.addEventListener('dblclick', () => copyGameTitle(g.t));
+  }
   $('#detail-content').querySelectorAll('.addon-cmp-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const addon = ADDONS.find(x => x.id === btn.dataset.id);
@@ -1575,7 +1748,7 @@ function renderDetail(g){
       const baseId = baseBtn.dataset.baseid;
       const baseGame = GAMES.find(x => x.id === baseId) || (g.baseTitle && GAMES.find(x => cleanTitle(x.t) === cleanTitle(g.baseTitle)));
       if(baseGame) {
-        history.pushState({}, '', location.pathname + location.search + '#game/' + baseGame.id);
+        history.pushState({ inDetail: true, id: baseGame.id, scrollY: savedScrollY, page: savedPage }, '', location.pathname + location.search + '#game/' + baseGame.id);
         showDetail(baseGame);
       }
     });
