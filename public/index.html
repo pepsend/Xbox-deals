@@ -117,10 +117,13 @@
   .toggle input:checked{background:var(--accent-bright);border-color:var(--accent-bright)}
   .toggle input:checked::after{transform:translateX(13px);background:#ffffff}
 
-  .genre-active-pill{display:inline-flex;align-items:center;gap:6px;background:color-mix(in srgb,var(--accent-bright) 12%,var(--surface));
+  .genre-active-pill, .country-active-pill{display:inline-flex;align-items:center;gap:6px;background:color-mix(in srgb,var(--accent-bright) 12%,var(--surface));
     border:1px solid color-mix(in srgb,var(--accent-bright) 30%,transparent);color:var(--accent-bright);
     font-size:12px;font-weight:600;padding:4px 9px;border-radius:8px}
-  .genre-active-pill button{border:none;background:none;color:inherit;font-size:15px;line-height:1;cursor:pointer;padding:0;display:grid;place-items:center}
+  .genre-active-pill button, .country-active-pill button{border:none;background:none;color:inherit;font-size:15px;line-height:1;cursor:pointer;padding:0;display:grid;place-items:center}
+  .country-active-pill .flag{width:16px;height:12px;border-radius:2px;object-fit:cover;vertical-align:middle}
+  .rrow-country-btn, .detail-country-btn, .cmp-country-btn{border:none;background:none;color:inherit;font:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:0;text-align:left;transition:color .15s}
+  .rrow-country-btn:hover, .detail-country-btn:hover, .cmp-country-btn:hover{color:var(--accent-bright)}
 
   .count{margin-left:auto;align-self:center;color:var(--faint);font-size:12.5px;font-variant-numeric:tabular-nums;font-weight:500}
 
@@ -354,8 +357,8 @@
     .controls .field input{min-width:0;width:100%;padding:9px 12px;font-size:13px}
     .controls .field select{width:100%;padding:9px 24px 9px 10px;font-size:12.5px}
     .toggle{grid-column:1 / 2;padding:7px 10px;font-size:12px}
-    .count{grid-column:2 / 3;justify-self:end;align-self:center;font-size:12px}
-    .genre-active-pill{grid-column:1 / -1;justify-self:start;margin-top:2px}
+    .count{grid-column:1 / -1;justify-self:end;align-self:center;font-size:12px;padding:2px 0}
+    .genre-active-pill, .country-active-pill{grid-column:1 / -1;justify-self:start;margin-top:2px}
 
     .new-shelf-wrap{padding:10px 12px;margin-bottom:14px;border-radius:12px}
     .shelf-card{flex:0 0 112px;padding:6px}
@@ -456,8 +459,15 @@
       <option value="disc">Mayor descuento</option>
       <option value="name">Nombre (A-Z)</option>
     </select></div>
+    <div class="field sel"><select id="country"><option value="">Todos los países (15)</option></select></div>
     <div class="field sel"><select id="genre"><option value="">Todos los géneros</option></select></div>
     <label class="toggle"><input type="checkbox" id="rated"> Solo con nota</label>
+    <label class="toggle" id="only-best-toggle" hidden><input type="checkbox" id="only-best"> Solo si es el más barato</label>
+    <div class="country-active-pill" id="country-active-pill" hidden>
+      <span id="country-active-flag"></span>
+      <span id="country-active-name"></span>
+      <button type="button" id="country-clear-btn" title="Quitar filtro de país">×</button>
+    </div>
     <div class="genre-active-pill" id="genre-active-pill" hidden>
       <span id="genre-active-name"></span>
       <button type="button" id="genre-clear-btn" title="Quitar filtro de género">×</button>
@@ -639,8 +649,10 @@ function checkAlerts(){
 function pushURL(){
   const p=new URLSearchParams();
   const qv=$('#q')?.value.trim();const sv=$('#sort')?.value;const rv=$('#rated')?.checked;const gv=$('#genre')?.value;
+  const cv=$('#country')?.value;const ob=$('#only-best')?.checked;
   if(qv)p.set('q',qv);if(sv&&sv!=='new')p.set('sort',sv);if(mode!=='all')p.set('mode',mode);
   if(rv)p.set('rated','1');if(gv)p.set('genre',gv);
+  if(cv)p.set('country',cv);if(ob)p.set('onlyBest','1');
   history.replaceState({},'','?'+(p.toString()));
 }
 function loadURL(){
@@ -650,7 +662,10 @@ function loadURL(){
   if($('#sort'))$('#sort').value=p.get('sort')||'new';
   if($('#rated'))$('#rated').checked=p.get('rated')==='1';
   if($('#genre')&&p.get('genre'))$('#genre').value=p.get('genre')||'';
+  if($('#country')&&p.get('country'))$('#country').value=p.get('country')||'';
+  if($('#only-best'))$('#only-best').checked=p.get('onlyBest')==='1';
   updateGenrePill();
+  updateCountryUI();
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.mode===mode));
 }
 function updateGenrePill(){
@@ -661,6 +676,40 @@ function updateGenrePill(){
     pill.hidden=false;
   }else{
     pill.hidden=true;
+  }
+}
+function updateCountryUI(){
+  const sel=$('#country');const pill=$('#country-active-pill');
+  const nameEl=$('#country-active-name');const flagEl=$('#country-active-flag');
+  const onlyBestToggle=$('#only-best-toggle');
+  const country=sel?sel.value:'';
+  if(country&&REG[country]){
+    const r=REG[country];
+    if(nameEl)nameEl.textContent=r.name+' ('+r.cur+')';
+    if(flagEl)flagEl.innerHTML=flagImg(r.code);
+    if(pill)pill.hidden=false;
+    if(onlyBestToggle)onlyBestToggle.hidden=false;
+  }else{
+    if(pill)pill.hidden=true;
+    if(onlyBestToggle){
+      onlyBestToggle.hidden=true;
+      const ob=$('#only-best');if(ob)ob.checked=false;
+    }
+  }
+}
+function filterByCountry(code, onlyCheapest = false){
+  const sel=$('#country');
+  if(sel){
+    sel.value=code||'';
+    const ob=$('#only-best');
+    if(ob)ob.checked=Boolean(onlyCheapest);
+    updateCountryUI();
+    pushURL();
+    render();
+    if($('#detail-view').classList.contains('show')){
+      showMain();
+    }
+    window.scrollTo({top:0,behavior:'smooth'});
   }
 }
 function filterByGenre(name){
@@ -863,6 +912,20 @@ function setupGenreOptions() {
   }
 }
 
+function setupCountryOptions() {
+  const sel = $('#country');
+  if (!sel || !REGIONS || !REGIONS.length) return;
+  const currentVal = sel.value;
+  sel.innerHTML = '<option value="">Todos los países (15)</option>';
+  REGIONS.forEach(r => {
+    const o = document.createElement('option');
+    o.value = r.code;
+    o.textContent = `${r.name} (${r.cur})`;
+    sel.appendChild(o);
+  });
+  if (currentVal) sel.value = currentVal;
+}
+
 let uiListenersBound = false;
 function bindUIListeners() {
   if (uiListenersBound) return;
@@ -877,8 +940,9 @@ function bindUIListeners() {
     render();
   }));
 
-  ['#q', '#sort', '#rated', '#genre'].forEach(s => $(s)?.addEventListener('input', () => {
+  ['#q', '#sort', '#rated', '#genre', '#country', '#only-best'].forEach(s => $(s)?.addEventListener('input', () => {
     if (s === '#genre') updateGenrePill();
+    if (s === '#country' || s === '#only-best') updateCountryUI();
     pushURL();
     render();
   }));
@@ -886,6 +950,11 @@ function bindUIListeners() {
   $('#genre-clear-btn')?.addEventListener('click', () => {
     const sel = $('#genre');
     if (sel) { sel.value = ''; updateGenrePill(); pushURL(); render(); }
+  });
+
+  $('#country-clear-btn')?.addEventListener('click', () => {
+    const sel = $('#country');
+    if (sel) { sel.value = ''; updateCountryUI(); pushURL(); render(); }
   });
 }
 
@@ -902,6 +971,7 @@ function applyCatalog(gamesData, metaData, addonsData = []) {
 
   updateBadgesAndMeta();
   setupGenreOptions();
+  setupCountryOptions();
 
   $('#state').hidden = true;
   $('#controls').hidden = false;
@@ -1006,6 +1076,8 @@ async function boot() {
 function render(){
   const q=$('#q').value.trim().toLowerCase();
   const sort=$('#sort').value;const rated=$('#rated').checked;const genre=$('#genre')?.value||'';
+  const country=$('#country')?.value||'';
+  const onlyBest=$('#only-best')?.checked||false;
   const bestOf=g=>g._best;
   const saveOf=g=>{const b=bestOf(g);return(g._cl&&b&&b.clp<g._cl)?(1-b.clp/g._cl):-1;};
 
@@ -1035,15 +1107,42 @@ function render(){
     if(rated&&g.mc==null)return false;
     if(genre&&!(Array.isArray(g.g)&&g.g.includes(genre)))return false;
     if(q&&!g.t.toLowerCase().includes(q))return false;
+    if(country){
+      const cp=g.r[country];
+      if(!cp)return false;
+      if(onlyBest&&(!g._best||g._best.code!==country))return false;
+    }
     return true;
   });
+
   ROWS.sort((a,b)=>{switch(sort){
     case 'score':
     case 'mc':return(b.mc??-1)-(a.mc??-1);
-    case 'clp':{const av=(bestOf(a)||{}).clp??Infinity,bv=(bestOf(b)||{}).clp??Infinity;return av-bv;}
+    case 'clp':{
+      if(country){
+        const ap=a.r[country]?a.r[country][1]:Infinity;
+        const bp=b.r[country]?b.r[country][1]:Infinity;
+        return ap-bp;
+      }
+      const av=(bestOf(a)||{}).clp??Infinity,bv=(bestOf(b)||{}).clp??Infinity;return av-bv;
+    }
     case 'diff':
-    case 'save':return saveOf(b)-saveOf(a);
-    case 'disc':return b._disc-a._disc;
+    case 'save':{
+      if(country){
+        const as=(a._cl&&a.r[country])?(1-a.r[country][1]/a._cl):-1;
+        const bs=(b._cl&&b.r[country])?(1-b.r[country][1]/b._cl):-1;
+        return bs-as;
+      }
+      return saveOf(b)-saveOf(a);
+    }
+    case 'disc':{
+      if(country){
+        const ad=a.r[country]?(a.r[country][2]||0):0;
+        const bd=b.r[country]?(b.r[country][2]||0):0;
+        return bd-ad;
+      }
+      return b._disc-a._disc;
+    }
     case 'alpha':
     case 'name':return a.t.localeCompare(b.t);
     case 'new':{
@@ -1069,12 +1168,19 @@ function render(){
       return bPop-aPop;
     }
   }});
+
   let label = 'juegos';
   if(mode==='dlc') label = 'DLCs y expansiones';
   else if(mode==='monedas') label = 'monedas y packs';
   else if(mode==='ofertas') label = 'ofertas activas';
   else if(mode==='watchlist') label = 'guardados';
-  $('#count').textContent=ROWS.length.toLocaleString('es-CL')+' '+label;
+
+  let countText = ROWS.length.toLocaleString('es-CL')+' '+label;
+  if(country && REG[country]){
+    if(onlyBest) countText += ` (más baratos en ${REG[country].name})`;
+    else countText += ` en ${REG[country].name}`;
+  }
+  $('#count').textContent=countText;
   page=1;draw();
 }
 function draw(){
@@ -1120,13 +1226,17 @@ function renderNewShelf(){
     else if(g.d===YESTERDAY_STR){bText='Ayer';bClass='yesterday';}
     else{bText=fmtDateShort(g.d);bClass='recent';}
 
+    const country=$('#country')?.value||'';
+    const cp=country&&g.r[country];
+    const dispPrice=cp?fmtCLP(cp[1]):(g._best?fmtCLP(g._best.clp):'-');
+
     const item=document.createElement('div');item.className='shelf-card';
     item.innerHTML=`
       <span class="shelf-badge ${bClass}">${bText}</span>
       ${g.img?`<img class="shelf-img" src="${g.img}?w=260&h=260&format=jpg&q=80" alt="${g.t}" loading="lazy">`:`<div class="shelf-img ph">?</div>`}
       <div class="shelf-info">
         <div class="shelf-title">${g.t}</div>
-        <div class="shelf-price">${g._best?fmtCLP(g._best.clp):'-'}</div>
+        <div class="shelf-price">${dispPrice}</div>
       </div>
     `;
     item.addEventListener('click',()=>{
@@ -1153,6 +1263,7 @@ function card(g){
   let best=g._best;
   if(mode==='ofertas'&&g._bestOffer)best=g._bestOffer;
   const save=(g._cl&&best&&best.clp<g._cl)?Math.round((1-best.clp/g._cl)*100):null;
+  const country=$('#country')?.value||'';
   const el=document.createElement('div');
   el.className='card'+(WATCHLIST.has(g.id)?' starred':'');el.dataset.id=g.id;
   const scoreEl=g.mc!=null
@@ -1160,7 +1271,31 @@ function card(g){
     :`<span class="score na">N/A</span>`;
   const genreTags=(Array.isArray(g.g)&&g.g.length)?`<div class="genre-tags">${g.g.slice(0,3).map(x=>`<button type="button" class="gtag" data-genre="${x}">${x}</button>`).join('')}</div>`:'';
   let pbox;
-  if(best){
+  if(country && g.r[country]){
+    const cp=g.r[country];
+    const cLocal=cp[0], cClp=cp[1], cDisc=cp[2]||0, cEnd=cp[3]||null;
+    const isExpired=Boolean(cEnd && cEnd < TODAY_STR);
+    const activeDisc=isExpired?0:cDisc;
+    const isBest=best && best.code===country;
+    const cReg=REG[country]||{name:country,cur:''};
+    const saveVsChile=(g._cl && cClp<g._cl)?Math.round((1-cClp/g._cl)*100):null;
+    const endTxt=(activeDisc&&cEnd&&!isExpired)?`<div class="ends">${CLOCK}Termina ${fmtDate(cEnd)}</div>`:'';
+
+    pbox=`<div class="pbox">
+      <div class="bestrow">
+        <div class="bestrow-left">
+          ${flagImg(country)}<span class="bregion">${cReg.name}</span>
+          ${isBest?`<span class="best-badge">Más barato</span>`:''}
+          ${activeDisc?`<span class="tag">-${activeDisc}%</span>`:(saveVsChile!=null?`<span class="tag">-${saveVsChile}%</span>`:'')}
+        </div>
+        <span class="bprice">${fmtCLP(cClp)}</span>
+      </div>
+      <div class="pbox-sub">
+        <span class="sub2">${fmtLocal(cLocal,cReg.cur)}${saveVsChile!=null?` · ahorras ${saveVsChile}% vs Chile`:''}</span>
+        ${(!isBest && best)?`<span class="chile">Mejor: <b>${REG[best.code]?.name||best.code} (${fmtCLP(best.clp)})</b></span>`:(g._cl && country!=='CL'?`<span class="chile">Chile <b>${fmtCLP(g._cl)}</b></span>`:'')}
+      </div>
+      ${endTxt}</div>`;
+  }else if(best){
     const endTxt=(best.disc&&best.end)?`<div class="ends">${CLOCK}Termina ${fmtDate(best.end)}</div>`:'';
     pbox=`<div class="pbox">
       <div class="bestrow">
@@ -1176,7 +1311,20 @@ function card(g){
       </div>
       ${endTxt}</div>`;
   }else pbox=`<div class="pbox"><div class="na2">Sin precio</div></div>`;
-  const regHTML=g._list.map(it=>`<div class="rrow">${flagImg(it.code)}<span class="rname">${REG[it.code].name||it.code}${(it.disc&&it.end)?`<span class="rend"> · oferta hasta ${fmtDate(it.end)}</span>`:''}</span><span class="rlocal">${fmtLocal(it.local,REG[it.code].cur)}</span><span class="rclp">${fmtCLP(it.clp)}</span>${it.disc?`<span class="rdisc">-${it.disc}%</span>`:''}<a href="https://www.microsoft.com/store/productId/${g.id}?market=${it.code}" target="_blank" rel="noopener">Ver</a></div>`).join('');
+
+  const regHTML=g._list.map(it=>{
+    const isSelected=it.code===country;
+    const isBest=best&&it.clp===best.clp;
+    return `<div class="rrow"${isBest?' style="background:color-mix(in srgb,var(--accent-bright) 7%,transparent)"':(isSelected?' style="background:color-mix(in srgb,var(--accent-bright) 12%,transparent);border-color:var(--accent-bright)"':'')}>
+      <button type="button" class="rrow-country-btn" data-code="${it.code}" title="Filtrar por ${REG[it.code]?.name||it.code}">${flagImg(it.code)}<span class="rname">${REG[it.code]?.name||it.code}${isBest?`<span class="best-badge">Más barato</span>`:''}</span></button>
+      ${(it.disc&&it.end)?`<span class="rend"> · oferta hasta ${fmtDate(it.end)}</span>`:''}
+      <span class="cmp-access">${REG[it.code]?.access||''}</span>
+      <span class="rlocal">${fmtLocal(it.local,REG[it.code]?.cur)}</span>
+      <span class="rclp">${fmtCLP(it.clp)}</span>
+      ${it.disc?`<span class="rdisc">-${it.disc}%</span>`:''}
+      <a href="https://www.microsoft.com/store/productId/${g.id}?market=${it.code}" target="_blank" rel="noopener">Ver</a>
+    </div>`;
+  }).join('');
   const starred=WATCHLIST.has(g.id);
   el.innerHTML=`${g.img?`<img class="cover" src="${g.img}" alt="" loading="lazy">`:`<div class="cover ph">?</div>`}
   <div class="info"><div class="gtitle">${g.t}</div>${(()=>{
@@ -1220,6 +1368,12 @@ function card(g){
     history.pushState({},'',location.pathname+location.search+'#game/'+g.id);
     showDetail(g);
   });
+  el.querySelectorAll('.rrow-country-btn').forEach(btn=>{
+    btn.addEventListener('click',e=>{
+      e.stopPropagation();
+      filterByCountry(btn.dataset.code);
+    });
+  });
   el.querySelectorAll('.gtag').forEach(btn=>{
     btn.addEventListener('click',e=>{
       e.stopPropagation();
@@ -1260,7 +1414,7 @@ function renderCmpBody(){
   for(const it of list){
     const r=REG[it.code];const isBest=it.clp===minClp;
     const tr=document.createElement('tr');if(isBest)tr.className='best-row';
-    tr.innerHTML=`<td>${flagImg(it.code)} <b>${r.name||it.code}</b>${isBest?`<span class="best-badge">Más barato</span>`:''}</td>
+    tr.innerHTML=`<td><button type="button" class="cmp-country-btn" data-code="${it.code}" title="Filtrar catálogo por ${r.name||it.code}">${flagImg(it.code)} <b>${r.name||it.code}</b>${isBest?`<span class="best-badge">Más barato</span>`:''}</button></td>
       <td><span class="cmp-access">${r.access||''}</span></td>
       <td style="color:var(--muted);font-variant-numeric:tabular-nums">${fmtLocal(it.local,r.cur)}</td>
       <td><b style="font-variant-numeric:tabular-nums">${fmtCLP(it.clp)}</b></td>
@@ -1269,6 +1423,12 @@ function renderCmpBody(){
       <td><a class="cmp-link" href="https://www.microsoft.com/store/productId/${cmpGame.id}?market=${it.code}" target="_blank" rel="noopener">Ver →</a></td>`;
     tbody.appendChild(tr);
   }
+  tbody.querySelectorAll('.cmp-country-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      closeCmp();
+      filterByCountry(btn.dataset.code);
+    });
+  });
 }
 $('#cmp-sort-clp').addEventListener('click',()=>{cmpAsc=!cmpAsc;$('#cmp-sort-clp').textContent='CLP '+(cmpAsc?'↑':'↓');renderCmpBody();});
 $('#modal-close').addEventListener('click',closeCmp);
@@ -1289,8 +1449,8 @@ function renderDetail(g){
   const regHTML=g._list.map(it=>{
     const r=REG[it.code];const isBest=best&&it.clp===best.clp;
     return `<div class="rrow"${isBest?' style="background:color-mix(in srgb,var(--accent) 7%,transparent)"':''}>
-      ${flagImg(it.code)}<span class="rname">${r.name||it.code}${isBest?`<span class="best-badge">Más barato</span>`:''}
-      ${(it.disc&&it.end)?`<span class="rend"> · hasta ${fmtDate(it.end)}</span>`:''}</span>
+      <button type="button" class="detail-country-btn" data-code="${it.code}" title="Filtrar catálogo por ${r.name||it.code}">${flagImg(it.code)}<span class="rname">${r.name||it.code}${isBest?`<span class="best-badge">Más barato</span>`:''}</span></button>
+      ${(it.disc&&it.end)?`<span class="rend"> · hasta ${fmtDate(it.end)}</span>`:''}
       <span class="cmp-access">${r.access||''}</span>
       <span class="rlocal">${fmtLocal(it.local,r.cur)}</span>
       <span class="rclp">${fmtCLP(it.clp)}</span>
@@ -1434,6 +1594,11 @@ function renderDetail(g){
   $('#detail-content').querySelectorAll('.detail-gtag').forEach(btn=>{
     btn.addEventListener('click',()=>{
       filterByGenre(btn.dataset.genre);
+    });
+  });
+  $('#detail-content').querySelectorAll('.detail-country-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      filterByCountry(btn.dataset.code);
     });
   });
   function setupChartUI(gameHist) {
