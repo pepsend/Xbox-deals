@@ -61,20 +61,26 @@ function extractProducts(j, items, region) {
   for (const s of psArr) {
     const id = s.productId;
     if (!id) continue;
-    const p = priceById[id];
-    if (!p || !(p.listPrice > 0)) continue;         // omite gratis / sin precio
     if (s.productKind && s.productKind !== 'Game' && s.productKind !== 'Bundle') continue; // solo juegos y bundles
-    const disc = Math.round(p.discountPercentage || 0);
+    const p = priceById[id];
+    // Permite juegos con precio (>0), gratuitos (==0) y títulos con fecha de lanzamiento
+    const hasPrice = p && typeof p.listPrice === 'number' && p.listPrice >= 0;
+    if (!hasPrice && !s.releaseDate) continue;
+
+    const listPrice = hasPrice ? p.listPrice : null;
+    const msrpPrice = hasPrice ? (p.msrp != null ? p.msrp : listPrice) : null;
+    const disc = (hasPrice && listPrice > 0) ? Math.round(p.discountPercentage || 0) : 0;
     if (!items[id]) added++;
     items[id] = {
       title: s.title || items[id]?.title || id,
       img: pickImg(s) || items[id]?.img || null,
       year: yearOf(s) || items[id]?.year,
       d: dateStr(s.releaseDate) || items[id]?.d,
-      list: p.listPrice, msrp: p.msrp || p.listPrice,
-      cur: p.currency || region.cur,
+      list: listPrice,
+      msrp: msrpPrice,
+      cur: p?.currency || region.cur,
       disc,
-      ends: disc > 0 ? endDateOf(p.endDateUtc) : null,   // fecha fin de oferta
+      ends: disc > 0 ? endDateOf(p.endDateUtc) : null,
       cats: (s.categories || []).filter(c => c && c !== 'Otros' && c !== 'Other'),
     };
   }
@@ -83,52 +89,62 @@ function extractProducts(j, items, region) {
 
 // Recorre el catalogo para un locale de forma ultra-agresiva:
 // 1) Primero barre lanzamientos recientes ordenados por fecha (ReleaseDate desc)
-// 2) Búsqueda agresiva de nuevos juegos (/search/Games)
-// 3) Recorrido completo del catalogo general
+// 2) Barre los juegos gratuitos más populares (TopFree) para capturar F2P del día
+// 3) Barre los más populares (MostPopular) para capturar tendencias inmediatas
+// 4) Búsqueda agresiva de títulos (/search/Games)
+// 5) Recorrido completo del catalogo general
 async function crawlRegion(region) {
   const items = {}; // productId -> { title, img, list, msrp, cur, disc }
 
-  // --- FASE 1 (ULTRA-AGRESIVA): Lanzamientos más recientes primero ---
-  // Garantiza que el 100% de los juegos lanzados hoy, ayer y en las últimas semanas
-  // sean capturados de inmediato sin importar la popularidad.
-  try {
-    const relFilter = b64(JSON.stringify({
-      orderby: { id: 'orderby', choices: [{ id: 'ReleaseDate desc' }] }
-    }));
-    const relKey = 'BROWSE_CHANNELID=_FILTERS=ORDERBY=RELEASEDATE DESC';
-    let ctRel = b64(JSON.stringify({ HasMore:true, SkipCount:0, TotalCount:0, PreviousPageProductIds:[] }));
-    let relPage = 0;
-    const MAX_REL = Number(process.env.MAX_REL_PAGES || 50); // 50 pags = ~1.250 títulos más recientes
-    while (relPage < MAX_REL) {
-      const body = {
-        Filters: relFilter,
-        ReturnFilters: false,
-        ChannelKeyToBeUsedInResponse: relKey,
-        EncodedCT: ctRel,
-        ChannelId: '',
-      };
-      let j;
-      try { j = await postJSON(`${EMERALD}?locale=${region.locale}`, body); }
-      catch (e) { break; }
-      if (!j) break;
-      const ch = j.channels ? j.channels[relKey] : null;
-      extractProducts(j, items, region);
-      relPage++;
-      if (!ch || !ch.encodedCT) break;
-      ctRel = ch.encodedCT;
-      let more = false;
-      try { more = JSON.parse(Buffer.from(ctRel, 'base64').toString()).HasMore; } catch {}
-      if (!more) break;
-      await sleep(40);
+  // Helper para recorrer canales ordenados
+  async function crawlChannel(orderChoice, channelKey, maxPages, label) {
+    try {
+      const filter = b64(JSON.stringify({
+        orderby: { id: 'orderby', choices: [{ id: orderChoice }] }
+      }));
+      let ct = b64(JSON.stringify({ HasMore:true, SkipCount:0, TotalCount:0, PreviousPageProductIds:[] }));
+      let p = 0;
+      while (p < maxPages) {
+        const body = {
+          Filters: filter,
+          ReturnFilters: false,
+          ChannelKeyToBeUsedInResponse: channelKey,
+          EncodedCT: ct,
+          ChannelId: '',
+        };
+        let j;
+        try { j = await postJSON(`${EMERALD}?locale=${region.locale}`, body); }
+        catch (e) { break; }
+        if (!j) break;
+        const ch = j.channels ? j.channels[channelKey] : null;
+        extractProducts(j, items, region);
+        p++;
+        if (!ch || !ch.encodedCT) break;
+        ct = ch.encodedCT;
+        let more = false;
+        try { more = JSON.parse(Buffer.from(ct, 'base64').toString()).HasMore; } catch {}
+        if (!more) break;
+        await sleep(35);
+      }
+      console.log(`  [${region.code}] ${label}: ${Object.keys(items).length} acumulados (${p} pags)`);
+    } catch (err) {
+      console.error(`  [${region.code}] Error en ${label}: ${err.message}`);
     }
-    console.log(`  [${region.code}] Escaneo agresivo por fecha: ${Object.keys(items).length} capturados en ${relPage} pags.`);
-  } catch (err) {
-    console.error(`  [${region.code}] Error en barrido por fecha: ${err.message}`);
   }
 
-  // --- FASE 2: Búsqueda agresiva de títulos (/search/Games) para atrapar indies recientes ---
+  // --- FASE 1 (ULTRA-AGRESIVA): Lanzamientos más recientes primero (80 páginas = ~2.000 títulos) ---
+  const MAX_REL = Number(process.env.MAX_REL_PAGES || 75);
+  await crawlChannel('ReleaseDate desc', 'BROWSE_CHANNELID=_FILTERS=ORDERBY=RELEASEDATE DESC', MAX_REL, 'Barrido por fecha');
+
+  // --- FASE 2: Juegos gratuitos (TopFree) para capturar lanzamientos F2P ---
+  await crawlChannel('TopFree', 'BROWSE_CHANNELID=_FILTERS=ORDERBY=TOPFREE', 12, 'Barrido TopFree');
+
+  // --- FASE 3: Populares del momento (MostPopular) ---
+  await crawlChannel('MostPopular', 'BROWSE_CHANNELID=_FILTERS=ORDERBY=MOSTPOPULAR', 12, 'Barrido MostPopular');
+
+  // --- FASE 4: Búsqueda agresiva de títulos (/search/Games) para atrapar indies recientes ---
   try {
-    const searchChars = ['a', 'e', 'i', 'o', 'u', 's', 'r', 't', '2', '0'];
+    const searchChars = ['a', 'e', 'i', 'o', 'u', 's', 'r', 't', '2', '0', 'game', 'the', '2026', '2024'];
     for (const char of searchChars) {
       const body = {
         Query: char,
@@ -142,13 +158,13 @@ async function crawlRegion(region) {
       try { j = await postJSON(`https://emerald.xboxservices.com/xboxcomfd/search/Games?locale=${region.locale}`, body); }
       catch (e) { continue; }
       if (j) extractProducts(j, items, region);
-      await sleep(30);
+      await sleep(25);
     }
   } catch (err) {
     // Si falla la búsqueda, el catálogo general igual cubre
   }
 
-  // --- FASE 3: Recorrido completo del catálogo general con reintentos robustos ---
+  // --- FASE 5: Recorrido completo del catálogo general con reintentos robustos ---
   let ct = b64(JSON.stringify({ HasMore:true, SkipCount:0, TotalCount:0, PreviousPageProductIds:[] }));
   let page = 0, total = 0, errCount = 0;
   while (true) {
@@ -186,9 +202,9 @@ async function crawlRegion(region) {
     if (!more || !ct) break;
     if (MAX_PAGES && page >= MAX_PAGES) break;
     if (page % 50 === 0) console.log(`  [${region.code}] ${page} pag, ${Object.keys(items).length} con precio...`);
-    await sleep(50);
+    await sleep(40);
   }
-  console.log(`  [${region.code}] listo: ${Object.keys(items).length} juegos con precio (catalogo ~${total})`);
+  console.log(`  [${region.code}] listo: ${Object.keys(items).length} juegos (catalogo ~${total})`);
   return items;
 }
 
@@ -285,7 +301,7 @@ async function main() {
     const prices = {};
     for (const r of REGIONS) {
       const it = byRegion[r.code][id];
-      if (!it) continue;
+      if (!it || it.list == null) continue;
       const clp = toCLP(it.list, it.cur);
       if (clp == null) continue;
       const isExpired = it.ends && it.ends < today;
@@ -294,7 +310,11 @@ async function main() {
       if (it.ends && !isExpired) cell.push(it.ends);
       prices[r.code] = cell;
     }
-    if (Object.keys(prices).length === 0) continue;
+    const hasPrices = Object.keys(prices).length > 0;
+    const ninetyDaysAgo = new Date(Date.now() - 90 * 864e5).toISOString().slice(0, 10);
+    const isRelevantNoPrice = base.d && (base.d >= ninetyDaysAgo);
+    if (!hasPrices && !isRelevantNoPrice) continue;
+
     const entry = {
       id, t: base.title, img: base.img, y: base.year || null, d: base.d || null,
       mc: ratings[norm(base.title)]?.mc ?? null,

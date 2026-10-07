@@ -554,8 +554,8 @@ const cleanTitle = s => (s || '').toLowerCase()
   .replace(/\s+/g, ' ').trim();
 
 const $=s=>document.querySelector(s);
-const fmtCLP=n=>n==null?'-':'$'+Math.round(n).toLocaleString('es-CL');
-const fmtLocal=(n,c)=>n==null?'-':Number(n).toLocaleString('es-CL',{maximumFractionDigits:2})+' '+c;
+const fmtCLP=n=>n==null?'-':(n===0?'Gratis':'$'+Math.round(n).toLocaleString('es-CL'));
+const fmtLocal=(n,c)=>n==null?'-':(n===0?'Gratis':Number(n).toLocaleString('es-CL',{maximumFractionDigits:2})+' '+c);
 const scoreColor=mc=>mc>=90?'var(--good)':mc>=80?'var(--ok)':mc>=70?'var(--mid)':'var(--low)';
 const MESES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 const fmtDate=s=>{if(!s)return null;const p=s.split('-');return (+p[2])+' '+MESES[(+p[1])-1]+' '+p[0];};
@@ -1384,7 +1384,7 @@ function renderNewShelf(){
 
     const country=$('#country')?.value||'';
     const cp=country&&g.r[country];
-    const dispPrice=cp?fmtCLP(cp[1]):(g._best?fmtCLP(g._best.clp):'-');
+    const dispPrice=cp?fmtCLP(cp[1]):(g._best?fmtCLP(g._best.clp):'Sin precio');
 
     const item=document.createElement('div');item.className='shelf-card';
     item.innerHTML=`
@@ -1446,32 +1446,40 @@ function card(g){
     const saveVsChile=(g._cl && cClp<g._cl)?Math.round((1-cClp/g._cl)*100):null;
     const endTxt=(activeDisc&&cEnd&&!isExpired)?`<div class="ends">${CLOCK}Termina ${fmtDate(cEnd)}</div>`:'';
 
+    const tagHtml=cClp===0
+      ?`<span class="tag">Gratuito</span>`
+      :(activeDisc?`<span class="tag">-${activeDisc}%</span>`:(saveVsChile!=null?`<span class="tag">-${saveVsChile}%</span>`:''));
+
     pbox=`<div class="pbox">
       <div class="bestrow">
         <div class="bestrow-left">
           ${flagImg(country)}<span class="bregion">${cReg.name}</span>
           ${isBest?`<span class="best-badge">Más barato</span>`:''}
-          ${activeDisc?`<span class="tag">-${activeDisc}%</span>`:(saveVsChile!=null?`<span class="tag">-${saveVsChile}%</span>`:'')}
+          ${tagHtml}
         </div>
         <span class="bprice">${fmtCLP(cClp)}</span>
       </div>
       <div class="pbox-sub">
-        <span class="sub2">${fmtLocal(cLocal,cReg.cur)}${saveVsChile!=null?` · ahorras ${saveVsChile}% vs Chile`:''}</span>
+        <span class="sub2">${cClp===0?'Gratuito':fmtLocal(cLocal,cReg.cur)}${saveVsChile!=null?` · ahorras ${saveVsChile}% vs Chile`:''}</span>
         ${(!isBest && best)?`<span class="chile">Mejor: <b>${REG[best.code]?.name||best.code} (${fmtCLP(best.clp)})</b></span>`:(g._cl && country!=='CL'?`<span class="chile">Chile <b>${fmtCLP(g._cl)}</b></span>`:'')}
       </div>
       ${endTxt}</div>`;
   }else if(best){
     const endTxt=(best.disc&&best.end)?`<div class="ends">${CLOCK}Termina ${fmtDate(best.end)}</div>`:'';
+    const tagHtml=best.clp===0
+      ?`<span class="tag">Gratuito</span>`
+      :(best.disc?`<span class="tag">-${best.disc}%</span>`:(save!=null?`<span class="tag">-${save}%</span>`:''));
+
     pbox=`<div class="pbox">
       <div class="bestrow">
         <div class="bestrow-left">
           ${flagImg(best.code)}<span class="bregion">${REG[best.code].name||best.code}</span>
-          ${best.disc?`<span class="tag">-${best.disc}%</span>`:(save!=null?`<span class="tag">-${save}%</span>`:'')}
+          ${tagHtml}
         </div>
         <span class="bprice">${fmtCLP(best.clp)}</span>
       </div>
       <div class="pbox-sub">
-        <span class="sub2">${fmtLocal(best.local,REG[best.code].cur)}${save!=null?` · ahorras ${save}%`:''}</span>
+        <span class="sub2">${best.clp===0?'Gratuito':fmtLocal(best.local,REG[best.code].cur)}${save!=null?` · ahorras ${save}%`:''}</span>
         ${g._cl?`<span class="chile">Chile <b>${fmtCLP(g._cl)}</b></span>`:''}
       </div>
       ${endTxt}</div>`;
@@ -1872,7 +1880,11 @@ function renderChart(gameId){
 
 // ============= PWA (#7) =============
 if('serviceWorker' in navigator){
-  window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => { reg.update().catch(()=>{}); })
+      .catch(()=>{});
+  });
 }
 
 boot();

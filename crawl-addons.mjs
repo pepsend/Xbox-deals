@@ -179,7 +179,7 @@ export async function crawlAddons(rates) {
         const id = p.ProductId;
         const av = p.DisplaySkuAvailabilities?.[0]?.Availabilities?.[0];
         const pr = av?.OrderManagementData?.Price;
-        if (!pr || !(pr.ListPrice > 0)) continue;
+        if (!pr || typeof pr.ListPrice !== 'number' || pr.ListPrice < 0) continue;
         const cur = pr.CurrencyCode || r.cur;
         const clp = toCLP(pr.ListPrice, cur);
         if (clp == null) continue;

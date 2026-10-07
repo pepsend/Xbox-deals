@@ -1,6 +1,6 @@
-// Service Worker — Xbox Deals (v12)
-// Estrategia de carga instantánea optimizada para iOS Safari y escritorio
-const CACHE = 'xbox-deals-v12';
+// Service Worker — Xbox Deals (v13)
+// Red primero para catálogo de datos (IndexedDB se encarga de la velocidad local)
+const CACHE = 'xbox-deals-v13';
 const STATIC = ['./manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
@@ -40,8 +40,9 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // meta.json -> Network-first (2KB, determina si hay actualización)
-  if (url.pathname.endsWith('/meta.json')) {
+  // data/*.json (meta.json, games.json, addons.json) -> Red primero
+  // Garantiza recibir siempre las últimas ofertas y juegos sin ser bloqueado por caché antigua.
+  if (url.pathname.includes('/data/')) {
     e.respondWith(
       fetch(e.request)
         .then(r => {
@@ -51,25 +52,7 @@ self.addEventListener('fetch', e => {
           }
           return r;
         })
-        .catch(() => caches.match(e.request).then(cached => cached || new Response('{}', { headers: { 'content-type': 'application/json' } })))
-    );
-    return;
-  }
-
-  // games.json y addons.json -> Stale-while-revalidate para arranque instantáneo
-  if (url.pathname.includes('/data/')) {
-    e.respondWith(
-      caches.match(e.request).then(cached => {
-        const fetchPromise = fetch(e.request).then(r => {
-          if (r.ok) {
-            const clone = r.clone();
-            caches.open(CACHE).then(c => c.put(e.request, clone)).catch(() => {});
-          }
-          return r;
-        }).catch(() => cached || new Response('[]', { headers: { 'content-type': 'application/json' } }));
-
-        return cached || fetchPromise;
-      })
+        .catch(() => caches.match(e.request).then(cached => cached || new Response('[]', { headers: { 'content-type': 'application/json' } })))
     );
     return;
   }
