@@ -1182,9 +1182,10 @@ async function boot() {
     const needGames = !renderedFromCache || (freshMeta.updated && freshMeta.updated !== META?.updated);
 
     if (needGames) {
+      const cacheBust = freshMeta.updated ? encodeURIComponent(freshMeta.updated) : Date.now();
       const [gamesRes, addonsRes] = await Promise.all([
-        fetchWithRetry('./data/games.json', {}, 3, 400).then(r => r.json()),
-        fetchWithRetry('./data/addons.json', {}, 2, 400).then(r => r.json()).catch(() => (ADDONS || []))
+        fetchWithRetry('./data/games.json?_t=' + cacheBust, {}, 3, 400).then(r => r.json()),
+        fetchWithRetry('./data/addons.json?_t=' + cacheBust, {}, 2, 400).then(r => r.json()).catch(() => (ADDONS || []))
       ]);
 
       idbSet('meta', freshMeta);
