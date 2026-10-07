@@ -47,11 +47,110 @@ async function postJSON(url, body, tries = 4) {
   }
 }
 
-// Recorre TODAS las paginas del catalogo para un locale y devuelve items.
+// Extrae productos y disponibilidad con precios de una respuesta de emerald
+function extractProducts(j, items, region) {
+  if (!j) return 0;
+  const ps = j.productSummaries || {};
+  const av = j.availabilitySummaries || [];
+  const avArr = Array.isArray(av) ? av : Object.values(av);
+  const priceById = {};
+  for (const a of avArr) if (a && a.price) priceById[a.productId] = a.price;
+
+  const psArr = Array.isArray(ps) ? ps : Object.values(ps);
+  let added = 0;
+  for (const s of psArr) {
+    const id = s.productId;
+    if (!id) continue;
+    const p = priceById[id];
+    if (!p || !(p.listPrice > 0)) continue;         // omite gratis / sin precio
+    if (s.productKind && s.productKind !== 'Game' && s.productKind !== 'Bundle') continue; // solo juegos y bundles
+    const disc = Math.round(p.discountPercentage || 0);
+    if (!items[id]) added++;
+    items[id] = {
+      title: s.title || items[id]?.title || id,
+      img: pickImg(s) || items[id]?.img || null,
+      year: yearOf(s) || items[id]?.year,
+      d: dateStr(s.releaseDate) || items[id]?.d,
+      list: p.listPrice, msrp: p.msrp || p.listPrice,
+      cur: p.currency || region.cur,
+      disc,
+      ends: disc > 0 ? endDateOf(p.endDateUtc) : null,   // fecha fin de oferta
+      cats: (s.categories || []).filter(c => c && c !== 'Otros' && c !== 'Other'),
+    };
+  }
+  return added;
+}
+
+// Recorre el catalogo para un locale de forma ultra-agresiva:
+// 1) Primero barre lanzamientos recientes ordenados por fecha (ReleaseDate desc)
+// 2) Búsqueda agresiva de nuevos juegos (/search/Games)
+// 3) Recorrido completo del catalogo general
 async function crawlRegion(region) {
   const items = {}; // productId -> { title, img, list, msrp, cur, disc }
+
+  // --- FASE 1 (ULTRA-AGRESIVA): Lanzamientos más recientes primero ---
+  // Garantiza que el 100% de los juegos lanzados hoy, ayer y en las últimas semanas
+  // sean capturados de inmediato sin importar la popularidad.
+  try {
+    const relFilter = b64(JSON.stringify({
+      orderby: { id: 'orderby', choices: [{ id: 'ReleaseDate desc' }] }
+    }));
+    const relKey = 'BROWSE_CHANNELID=_FILTERS=ORDERBY=RELEASEDATE DESC';
+    let ctRel = b64(JSON.stringify({ HasMore:true, SkipCount:0, TotalCount:0, PreviousPageProductIds:[] }));
+    let relPage = 0;
+    const MAX_REL = Number(process.env.MAX_REL_PAGES || 50); // 50 pags = ~1.250 títulos más recientes
+    while (relPage < MAX_REL) {
+      const body = {
+        Filters: relFilter,
+        ReturnFilters: false,
+        ChannelKeyToBeUsedInResponse: relKey,
+        EncodedCT: ctRel,
+        ChannelId: '',
+      };
+      let j;
+      try { j = await postJSON(`${EMERALD}?locale=${region.locale}`, body); }
+      catch (e) { break; }
+      if (!j) break;
+      const ch = j.channels ? j.channels[relKey] : null;
+      extractProducts(j, items, region);
+      relPage++;
+      if (!ch || !ch.encodedCT) break;
+      ctRel = ch.encodedCT;
+      let more = false;
+      try { more = JSON.parse(Buffer.from(ctRel, 'base64').toString()).HasMore; } catch {}
+      if (!more) break;
+      await sleep(40);
+    }
+    console.log(`  [${region.code}] Escaneo agresivo por fecha: ${Object.keys(items).length} capturados en ${relPage} pags.`);
+  } catch (err) {
+    console.error(`  [${region.code}] Error en barrido por fecha: ${err.message}`);
+  }
+
+  // --- FASE 2: Búsqueda agresiva de títulos (/search/Games) para atrapar indies recientes ---
+  try {
+    const searchChars = ['a', 'e', 'i', 'o', 'u', 's', 'r', 't', '2', '0'];
+    for (const char of searchChars) {
+      const body = {
+        Query: char,
+        Filters: b64('{}'),
+        ReturnFilters: false,
+        ChannelKeyToBeUsedInResponse: 'SEARCH',
+        EncodedCT: b64(JSON.stringify({ HasMore:true, SkipCount:0, TotalCount:0, PreviousPageProductIds:[] })),
+        ChannelId: '',
+      };
+      let j;
+      try { j = await postJSON(`https://emerald.xboxservices.com/xboxcomfd/search/Games?locale=${region.locale}`, body); }
+      catch (e) { continue; }
+      if (j) extractProducts(j, items, region);
+      await sleep(30);
+    }
+  } catch (err) {
+    // Si falla la búsqueda, el catálogo general igual cubre
+  }
+
+  // --- FASE 3: Recorrido completo del catálogo general con reintentos robustos ---
   let ct = b64(JSON.stringify({ HasMore:true, SkipCount:0, TotalCount:0, PreviousPageProductIds:[] }));
-  let page = 0, total = 0;
+  let page = 0, total = 0, errCount = 0;
   while (true) {
     const body = {
       Filters: b64('{}'),
@@ -61,39 +160,24 @@ async function crawlRegion(region) {
       ChannelId: '',
     };
     let j;
-    try { j = await postJSON(`${EMERALD}?locale=${region.locale}`, body); }
-    catch (e) { console.error(`  [${region.code}] pagina ${page} fallo: ${e.message}`); break; }
+    try {
+      j = await postJSON(`${EMERALD}?locale=${region.locale}`, body);
+      errCount = 0;
+    }
+    catch (e) {
+      console.error(`  [${region.code}] pagina ${page} fallo: ${e.message}`);
+      errCount++;
+      if (errCount >= 3) break; // solo aborta si 3 paginas consecutivas fallan
+      await sleep(800);
+      page++;
+      continue;
+    }
 
     const ch = j.channels ? j.channels[Object.keys(j.channels)[0]] : null;
     if (!ch) break;
     total = ch.totalItems || total;
 
-    const ps = j.productSummaries || {};
-    const av = j.availabilitySummaries || [];
-    const avArr = Array.isArray(av) ? av : Object.values(av);
-    const priceById = {};
-    for (const a of avArr) if (a && a.price) priceById[a.productId] = a.price;
-
-    const psArr = Array.isArray(ps) ? ps : Object.values(ps);
-    for (const s of psArr) {
-      const id = s.productId;
-      if (!id) continue;
-      const p = priceById[id];
-      if (!p || !(p.listPrice > 0)) continue;         // omite gratis / sin precio
-      if (s.productKind && s.productKind !== 'Game') continue; // solo juegos
-      const disc = Math.round(p.discountPercentage || 0);
-      items[id] = {
-        title: s.title || items[id]?.title || id,
-        img: pickImg(s) || items[id]?.img || null,
-        year: yearOf(s),
-        d: dateStr(s.releaseDate),
-        list: p.listPrice, msrp: p.msrp || p.listPrice,
-        cur: p.currency || region.cur,
-        disc,
-        ends: disc > 0 ? endDateOf(p.endDateUtc) : null,   // fecha fin de oferta
-        cats: (s.categories || []).filter(c => c && c !== 'Otros' && c !== 'Other'),
-      };
-    }
+    extractProducts(j, items, region);
 
     page++;
     ct = ch.encodedCT;
@@ -101,12 +185,13 @@ async function crawlRegion(region) {
     try { more = JSON.parse(Buffer.from(ct, 'base64').toString()).HasMore; } catch {}
     if (!more || !ct) break;
     if (MAX_PAGES && page >= MAX_PAGES) break;
-    if (page % 40 === 0) console.log(`  [${region.code}] ${page} pag, ${Object.keys(items).length} con precio...`);
-    await sleep(60); // freno suave
+    if (page % 50 === 0) console.log(`  [${region.code}] ${page} pag, ${Object.keys(items).length} con precio...`);
+    await sleep(50);
   }
   console.log(`  [${region.code}] listo: ${Object.keys(items).length} juegos con precio (catalogo ~${total})`);
   return items;
 }
+
 
 function pickImg(s) {
   const imgs = s.images || {};

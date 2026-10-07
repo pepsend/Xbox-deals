@@ -44,3 +44,13 @@ jobs:
               echo "reintento $i..."; sleep 5
             done
           fi
+
+      - name: Publicar sitio en GitHub Pages (xbox-deals-web)
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          personal_token: ${{ secrets.SITE_DEPLOY }}
+          external_repository: pepsend/xbox-deals-web
+          publish_dir: ./public
+          publish_branch: main
+          force_orphan: true
+
